@@ -30,5 +30,13 @@ window.PAYMENT_CONFIG = {
 
   // Mật khẩu khu vực Quản Trị Khách Hàng (Admin) - Dành riêng cho Thầy Chí
   ADMIN_PASSWORD: '336699',
-  ADMIN_RECOVERY_EMAIL: 'badaoqn132@gmail.com'
+  ADMIN_RECOVERY_EMAIL: 'badaoqn132@gmail.com',
+
+  // Cấu hình Supabase Cloud tự động lưu trữ & gửi PDF đóng dấu bản quyền
+  SUPABASE_URL: 'https://uiyqdqucqplifcvukwul.supabase.co',
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpeXFkcXVjcXBsaWZjdnVrd3VsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg0MzQyNTYsImV4cCI6MjEwNDAxMDI1Nn0.QFVahkLpgPklc5rQZnskLY1W5913nZ6Vn80T_As-he0',
+  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_eVPODZoNRLiGD8Ldl2VjAg_eC_KTKDg',
+  SUPABASE_BUCKET: 'so-tay-toan-pdfs',
+  SUPABASE_DEFAULT_MASTER_PATH: 'master/so-tay-toan-thpt-master.pdf',
+  SUPABASE_EDGE_FN_SEND_PDF: 'https://uiyqdqucqplifcvukwul.supabase.co/functions/v1/send-order-pdf'
 };

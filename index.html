@@ -1134,6 +1134,131 @@
           </div>
         </div>
 
+        <!-- ==================================================================
+             KHO LƯU TRỮ PDF SUPABASE & UPLOAD FILE ĐẦY ĐỦ CHI TIẾT / THAY THẾ
+             ================================================================== -->
+        <div class="admin-supabase-pdf-panel" id="admin-supabase-pdf-panel" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px dashed #cbd5e1;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div style="width: 34px; height: 34px; border-radius: 8px; background: #dcfce7; color: #15803d; display: grid; place-items: center; flex-shrink: 0;">
+                <svg class="ui-ico" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              </div>
+              <div>
+                <h4 style="margin: 0; font-size: 15px; color: var(--ink-deep); font-weight: 800;">
+                  Kho Lưu Trữ PDF Supabase &amp; Upload File Đầy Đủ Chi Tiết / Gửi File Thay Thế
+                </h4>
+                <p style="margin: 2px 0 0; font-size: 12px; color: #475569;">
+                  Đã kết nối tự động 100% với <b>Supabase Storage (so-tay-toan-pdfs)</b> &bull; Tự động đóng dấu bản quyền Mã đơn và gửi cho khách hàng.
+                </p>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span id="admin-supabase-conn-badge" style="background: #dcfce7; color: #166534; border: 1px solid #86efac; padding: 4px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 700;">
+                Supabase Cloud: Đang hoạt động
+              </span>
+              <button type="button" class="btn btn-ghost btn-sm" id="admin-sync-supabase-btn" style="height: 30px; padding: 0 10px; font-size: 12px;">
+                <svg class="ui-ico" style="width:13px;height:13px;" viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                <span>Đồng bộ Supabase</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Danh sách File PDF Gốc Đang Áp Dụng Trên Supabase -->
+          <div id="admin-active-pdf-list" style="margin-bottom: 14px; display: grid; gap: 8px;">
+            <!-- Rendered via JS -->
+          </div>
+
+          <!-- Form Upload File PDF Đầy Đủ Chi Tiết / File Thay Thế -->
+          <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px;">
+            <div style="font-weight: 700; font-size: 13.5px; color: var(--ink-deep); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+              <svg class="ui-ico" style="width:15px;height:15px;color:var(--ink);" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+              <span>Upload File PDF Đầy Đủ Chi Tiết / File Thay Thế Lên Supabase</span>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 10px;">
+              <!-- 1. Chọn File PDF -->
+              <div>
+                <label class="form-label" for="admin-upload-pdf-file" style="font-size: 12px; margin-bottom: 4px; display: block;">
+                  1. Chọn file PDF từ máy (.pdf) <span class="req">*</span>
+                </label>
+                <input type="file" id="admin-upload-pdf-file" accept="application/pdf,.pdf" class="form-input" style="padding: 6px 8px; font-size: 12.5px; height: 38px; background: #f8fafc;">
+                <div id="admin-upload-file-meta" style="font-size: 11.5px; color: #0f766e; margin-top: 4px; font-weight: 600; display: none;"></div>
+              </div>
+
+              <!-- 2. Tên hiển thị tài liệu -->
+              <div>
+                <label class="form-label" for="admin-upload-pdf-title" style="font-size: 12px; margin-bottom: 4px; display: block;">
+                  2. Tên hiển thị tài liệu PDF
+                </label>
+                <input type="text" id="admin-upload-pdf-title" class="form-input" value="Sổ Tay Tóm Tắt Toán THPT - Bản Đầy Đủ Chi Tiết" placeholder="Nhập tên tài liệu..." style="padding: 7px 10px; font-size: 12.5px; height: 38px;">
+              </div>
+
+              <!-- 3. Phạm vi gói áp dụng -->
+              <div>
+                <label class="form-label" for="admin-upload-pdf-scope" style="font-size: 12px; margin-bottom: 4px; display: block;">
+                  3. Áp dụng cho gói sản phẩm
+                </label>
+                <select id="admin-upload-pdf-scope" class="form-input" style="padding: 7px 10px; font-size: 12.5px; height: 38px;">
+                  <option value="all">Tất cả các gói có PDF (Mặc định)</option>
+                  <option value="combo_12">Riêng gói COMBO Toàn Diện Lớp 12 (69.000 đ)</option>
+                  <option value="combo">Riêng gói COMBO Sách + PDF + Đề GK, CK 10-11-12 (49.000 đ)</option>
+                  <option value="print">Riêng gói COMBO Sách + Ebook PDF (39.000 đ)</option>
+                </select>
+              </div>
+
+              <!-- 4. Chế độ xử lý & gửi file thay thế -->
+              <div>
+                <label class="form-label" for="admin-upload-send-mode" style="font-size: 12px; margin-bottom: 4px; display: block;">
+                  4. Chế độ lưu &amp; tự động gửi khách hàng
+                </label>
+                <select id="admin-upload-send-mode" class="form-input" style="padding: 7px 10px; font-size: 12.5px; height: 38px;">
+                  <option value="new_only">Lưu lên Supabase &amp; tự động gửi cho mọi khách mua mới</option>
+                  <option value="send_specific">Lưu lên Supabase &amp; đóng dấu gửi ngay cho 1 khách hàng cụ thể</option>
+                  <option value="send_all_paid">Lưu lên Supabase &amp; đóng dấu gửi thay thế cho toàn bộ khách đã mua</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Khung chọn / điền thông tin khách nhận file thay thế cụ thể (Hiện khi chọn send_specific) -->
+            <div id="admin-replace-recipient-box" style="display: none; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px;">
+              <div style="font-size: 12px; font-weight: 700; color: #1e40af; margin-bottom: 8px;">
+                Thông tin khách hàng nhận File PDF thay thế (Đóng dấu bản quyền riêng):
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px;">
+                <div>
+                  <select id="admin-replace-order-select" class="form-input" style="padding: 6px 8px; font-size: 12px; height: 34px;">
+                    <option value="">-- Chọn nhanh từ đơn đã đặt --</option>
+                  </select>
+                </div>
+                <div>
+                  <input type="text" id="admin-replace-order-id" class="form-input" placeholder="Mã đơn (VD: PTC882194)" style="padding: 6px 8px; font-size: 12px; height: 34px;">
+                </div>
+                <div>
+                  <input type="text" id="admin-replace-name" class="form-input" placeholder="Họ tên khách hàng..." style="padding: 6px 8px; font-size: 12px; height: 34px;">
+                </div>
+                <div>
+                  <input type="text" id="admin-replace-phone" class="form-input" placeholder="SĐT khách hàng..." style="padding: 6px 8px; font-size: 12px; height: 34px;">
+                </div>
+                <div>
+                  <input type="email" id="admin-replace-email" class="form-input" placeholder="Email nhận file PDF..." style="padding: 6px 8px; font-size: 12px; height: 34px;">
+                </div>
+              </div>
+            </div>
+
+            <!-- Ghi chú phiên bản & Nút Upload -->
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
+              <input type="text" id="admin-upload-version-note" class="form-input" placeholder="Ghi chú chi tiết / Lời nhắn kèm theo (VD: Bản đầy đủ 126 trang + Đề thi thử mới nhất)..." style="flex: 1; min-width: 240px; padding: 7px 10px; font-size: 12.5px; height: 38px;">
+              <button type="button" class="btn btn-primary btn-sm" id="admin-upload-pdf-submit-btn" style="height: 38px; padding: 0 18px; white-space: nowrap;">
+                <svg class="ui-ico" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                <span>Upload Lên Supabase &amp; Áp Dụng Tự Động</span>
+              </button>
+            </div>
+
+            <!-- Trạng thái Upload & Gửi File -->
+            <div id="admin-upload-status-box" style="display: none; margin-top: 10px; padding: 10px 12px; border-radius: 8px; font-size: 12.5px; line-height: 1.5;"></div>
+          </div>
+        </div>
+
         <!-- Action Toolbar -->
         <div class="admin-toolbar">
           <div class="admin-search-wrap">
@@ -1173,6 +1298,7 @@
                 <th>Số Tiền</th>
                 <th>Nội Dung CK</th>
                 <th>Trạng Thái</th>
+                <th>File PDF Bản Quyền (Supabase)</th>
               </tr>
             </thead>
             <tbody id="admin-table-body">
@@ -1188,6 +1314,7 @@
   </div>
 
   <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <script src="assets/js/payment-config.js"></script>
   <script src="assets/js/viewer.js"></script>
   <script src="assets/js/order.js"></script>
