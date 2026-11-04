@@ -1657,6 +1657,16 @@
     const adminGateBox = document.getElementById('admin-gate-box');
     const adminDashboardBox = document.getElementById('admin-dashboard-box');
     const adminSearchInput = document.getElementById('admin-search-input');
+    const adminSearchClearBtn = document.getElementById('admin-search-clear-btn');
+    const adminFilterStatus = document.getElementById('admin-filter-status');
+    const adminFilterPackage = document.getElementById('admin-filter-package');
+    const adminSortOrders = document.getElementById('admin-sort-orders');
+    const adminFilterCountBadge = document.getElementById('admin-filter-count-badge');
+    const adminSelectAllOrders = document.getElementById('admin-select-all-orders');
+    const adminDeleteSelectedBtn = document.getElementById('admin-delete-selected-btn');
+    const adminDeleteSelectedLabel = document.getElementById('admin-delete-selected-label');
+    const adminDeletePendingBtn = document.getElementById('admin-delete-pending-btn');
+    const adminDeleteAllBtn = document.getElementById('admin-delete-all-btn');
     const adminExportCsvBtn = document.getElementById('admin-export-csv-btn');
     const adminExportJsonBtn = document.getElementById('admin-export-json-btn');
     const adminRefreshBtn = document.getElementById('admin-refresh-btn');
@@ -1693,6 +1703,7 @@
     let isAdminLoggedIn = false;
     let selectedUploadFileBytes = null;
     let selectedUploadPageCount = 22;
+    const selectedOrderIds = new Set();
 
     function getAdminPassword() {
       return localStorage.getItem('stc_admin_custom_pwd') || CONFIG.ADMIN_PASSWORD || '336699';
@@ -1710,6 +1721,49 @@
       if (scope === 'combo') return 'COMBO Vững Vàng Điểm Cao Giữa Kì Và Cuối Kì (49.000 đ)';
       if (scope === 'print') return 'COMBO Tra Cứu Linh Hoạt Mọi Lúc Mọi Nơi (39.000 đ)';
       return 'Mặc định cho TẤT CẢ gói có sách điện tử';
+    }
+
+    function getDeletedOrderIdsSet() {
+      try {
+        return new Set(JSON.parse(localStorage.getItem('stc_deleted_order_ids') || '[]'));
+      } catch (e) {
+        return new Set();
+      }
+    }
+
+    function saveDeletedOrderIdsSet(setObj) {
+      try {
+        localStorage.setItem('stc_deleted_order_ids', JSON.stringify(Array.from(setObj).slice(-1000)));
+      } catch (e) {}
+    }
+
+    async function deleteOrdersByIds(idsArray) {
+      const targetIds = (idsArray || []).map(x => String(x || '').trim()).filter(Boolean);
+      if (targetIds.length === 0) return 0;
+
+      const idSet = new Set(targetIds);
+      const deletedSet = getDeletedOrderIdsSet();
+      targetIds.forEach(id => {
+        deletedSet.add(id);
+        selectedOrderIds.delete(id);
+      });
+      saveDeletedOrderIdsSet(deletedSet);
+
+      const remaining = getOrders().filter(o => o && !idSet.has(String(o.id)));
+      localStorage.setItem('stc_admin_orders_db', JSON.stringify(remaining));
+
+      // Đồng bộ xóa trên Supabase Cloud
+      try {
+        const quoted = targetIds.map(id => `"${id.replace(/"/g, '')}"`).join(',');
+        await fetch(`${SUPABASE_CFG.url}/rest/v1/so_tay_orders?order_id=in.(${encodeURIComponent(quoted)})`, {
+          method: 'DELETE',
+          headers: getSupabaseHeaders({ 'Prefer': 'return=minimal' })
+        });
+      } catch (e) {}
+
+      renderAdminOrders();
+      populateRecipientOrderSelect();
+      return targetIds.length;
     }
 
     function openAdminModal() {
@@ -1746,12 +1800,15 @@
         const rows = await res.json();
         if (!Array.isArray(rows)) return;
 
+        const deletedSet = getDeletedOrderIdsSet();
         const localOrders = getOrders();
         const byId = new Map();
-        localOrders.forEach(o => { if (o && o.id) byId.set(o.id, o); });
+        localOrders.forEach(o => {
+          if (o && o.id && !deletedSet.has(String(o.id))) byId.set(o.id, o);
+        });
 
         rows.forEach(r => {
-          if (!r || !r.order_id) return;
+          if (!r || !r.order_id || deletedSet.has(String(r.order_id))) return;
           const existing = byId.get(r.order_id) || {};
           byId.set(r.order_id, Object.assign({
             id: r.order_id,
@@ -1785,24 +1842,24 @@
       if (!adminActivePdfList) return;
       const templates = await fetchActivePdfTemplatesFromSupabase();
       adminActivePdfList.innerHTML = templates.map(t => `
-        <div style="background:#ffffff; border:1px solid #cbd5e1; border-radius:8px; padding:10px 12px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; font-size:12.5px;">
+        <div class="admin-pdf-tpl-card">
           <div style="min-width:220px; flex:1;">
-            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:3px;">
-              <span style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700;">
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:4px;">
+              <span class="admin-pdf-scope-badge">
                 ${getScopeLabel(t.package_scope)}
               </span>
-              <b style="color:var(--ink-deep); font-size:13px;">${t.title || t.file_name}</b>
+              <b style="color:var(--text); font-size:13px;">${t.title || t.file_name}</b>
             </div>
-            <div style="color:#475569; font-size:11.5px;">
+            <div style="color:var(--text-3); font-size:11.5px;">
               File trên Supabase: <code>${t.storage_path}</code> &bull; Dung lượng: <b>${formatBytes(t.file_size)}</b> &bull; Số trang: <b>${t.page_count || 22} trang</b>
               ${t.version_note ? ` &bull; Ghi chú: <i>${t.version_note}</i>` : ''}
             </div>
           </div>
           <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-            <a href="${t.public_url}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" style="height:28px; padding:0 10px; font-size:11.5px;">
+            <a href="${t.public_url}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" style="height:30px; padding:0 10px; font-size:11.5px;">
               <span>Xem File Gốc (Supabase)</span>
             </a>
-            <button type="button" class="btn btn-green btn-sm" data-test-template-id="${t.id}" style="height:28px; padding:0 10px; font-size:11.5px;">
+            <button type="button" class="btn btn-green btn-sm" data-test-template-id="${t.id}" style="height:30px; padding:0 10px; font-size:11.5px;">
               <span>Tải Thử Bản Đóng Dấu</span>
             </button>
           </div>
@@ -1842,7 +1899,7 @@
       populateRecipientOrderSelect();
       await renderSupabasePdfTemplates();
       await syncOrdersFromSupabase();
-      renderAdminOrders(adminSearchInput ? adminSearchInput.value : '');
+      renderAdminOrders();
       populateRecipientOrderSelect();
     }
 
@@ -1873,39 +1930,98 @@
       }
     }
 
-    function renderAdminOrders(searchTerm = '') {
+    function updateBulkActionButtons(filteredOrders) {
+      const existingIds = new Set(getOrders().map(o => String(o.id)));
+      Array.from(selectedOrderIds).forEach(id => {
+        if (!existingIds.has(id)) selectedOrderIds.delete(id);
+      });
+
+      const selectedCount = selectedOrderIds.size;
+      if (adminDeleteSelectedBtn) {
+        adminDeleteSelectedBtn.disabled = selectedCount === 0;
+      }
+      if (adminDeleteSelectedLabel) {
+        adminDeleteSelectedLabel.textContent = `Xóa Đã Chọn (${selectedCount})`;
+      }
+      if (adminSelectAllOrders) {
+        const visibleIds = (filteredOrders || []).map(o => String(o.id)).filter(Boolean);
+        adminSelectAllOrders.checked = visibleIds.length > 0 && visibleIds.every(id => selectedOrderIds.has(id));
+        adminSelectAllOrders.indeterminate = visibleIds.some(id => selectedOrderIds.has(id)) && !adminSelectAllOrders.checked;
+      }
+    }
+
+    function renderAdminOrders() {
       const orders = getOrders();
       const tbody = document.getElementById('admin-table-body');
       const emptyNotice = document.getElementById('admin-empty-notice');
       const totalOrdersEl = document.getElementById('admin-stat-total-orders');
       const paidOrdersEl = document.getElementById('admin-stat-paid-orders');
+      const pendingOrdersEl = document.getElementById('admin-stat-pending-orders');
       const revenueEl = document.getElementById('admin-stat-revenue');
 
       let paidCount = 0;
+      let pendingCount = 0;
       let totalRevenue = 0;
 
       orders.forEach(o => {
         if (o.status === 'Đã thanh toán') {
           paidCount++;
           totalRevenue += Number(o.total || 0);
+        } else {
+          pendingCount++;
         }
       });
 
       if (totalOrdersEl) totalOrdersEl.textContent = orders.length;
       if (paidOrdersEl) paidOrdersEl.textContent = paidCount;
+      if (pendingOrdersEl) pendingOrdersEl.textContent = pendingCount;
       if (revenueEl) revenueEl.textContent = formatMoney(totalRevenue);
 
       if (!tbody) return;
 
-      const q = searchTerm.toLowerCase().trim();
+      const rawQuery = adminSearchInput ? adminSearchInput.value.trim() : '';
+      if (adminSearchClearBtn) {
+        adminSearchClearBtn.style.display = rawQuery ? 'inline-flex' : 'none';
+      }
+      const q = rawQuery.toLowerCase();
+      const qNoTone = removeVietnameseTones(rawQuery).toLowerCase();
+      const statusFilter = adminFilterStatus ? adminFilterStatus.value : 'all';
+      const pkgFilter = adminFilterPackage ? adminFilterPackage.value : 'all';
+      const sortMode = adminSortOrders ? adminSortOrders.value : 'newest';
+
       const filtered = orders.filter(o => {
+        if (statusFilter === 'paid' && o.status !== 'Đã thanh toán') return false;
+        if (statusFilter === 'pending' && o.status === 'Đã thanh toán') return false;
+        if (pkgFilter !== 'all' && o.pkgId !== pkgFilter) return false;
         if (!q) return true;
-        return (o.id && o.id.toLowerCase().includes(q)) ||
-               (o.name && o.name.toLowerCase().includes(q)) ||
-               (o.phone && o.phone.includes(q)) ||
-               (o.email && o.email.toLowerCase().includes(q)) ||
-               (o.province && o.province.toLowerCase().includes(q));
+
+        const haystack = [
+          o.id,
+          o.name,
+          o.phone,
+          o.email,
+          o.fullAddress,
+          o.pkgName,
+          o.memo,
+          o.status
+        ].filter(Boolean).join(' ');
+        const hayLower = haystack.toLowerCase();
+        const hayNoTone = removeVietnameseTones(haystack).toLowerCase();
+        return hayLower.includes(q) || hayNoTone.includes(qNoTone);
       });
+
+      filtered.sort((a, b) => {
+        if (sortMode === 'oldest') return (a.timestamp || 0) - (b.timestamp || 0);
+        if (sortMode === 'amount_desc') return Number(b.total || 0) - Number(a.total || 0);
+        if (sortMode === 'name_asc') return String(a.name || '').localeCompare(String(b.name || ''), 'vi');
+        return (b.timestamp || 0) - (a.timestamp || 0);
+      });
+
+      updateBulkActionButtons(filtered);
+
+      if (adminFilterCountBadge) {
+        adminFilterCountBadge.textContent = `Hiển thị: ${filtered.length} / ${orders.length} đơn${selectedOrderIds.size > 0 ? ` • Đã chọn ${selectedOrderIds.size}` : ''}`;
+      }
 
       if (filtered.length === 0) {
         tbody.innerHTML = '';
@@ -1915,44 +2031,96 @@
 
       if (emptyNotice) emptyNotice.style.display = 'none';
       tbody.innerHTML = filtered.map(o => {
+        const oid = String(o.id || '');
+        const isChecked = selectedOrderIds.has(oid);
         const isBookOnly = o.pkgId === 'book_only';
-        const sbPdfLink = o.watermarkedPdfUrl || getSupabasePublicUrl(`orders/So-Tay-Toan-THPT-Ban-Quyen-${o.id}.pdf`);
+        const sbPdfLink = o.watermarkedPdfUrl || getSupabasePublicUrl(`orders/So-Tay-Toan-THPT-Ban-Quyen-${oid}.pdf`);
         return `
-        <tr>
-          <td><b style="color:var(--ink); font-family:monospace;">#${o.id}</b></td>
-          <td style="color:#666; font-size:12px;">${o.createdAt || ''}</td>
-          <td><b>${o.name || '---'}</b></td>
-          <td><a href="tel:${o.phone}" style="color:var(--blue); font-weight:600;">${o.phone || '---'}</a></td>
-          <td style="font-size:12px;">${o.email || '---'}</td>
-          <td style="max-width:220px; white-space:normal; font-size:12px;" title="${o.fullAddress || ''}">${o.fullAddress || '---'}</td>
-          <td style="font-size:12px; font-weight:600;">${o.pkgName || ''}</td>
-          <td><b style="color:var(--ink);">${formatMoney(o.total || 0)}</b></td>
-          <td><code style="background:#f1f5f9; padding:2px 5px; border-radius:3px;">${o.memo || ''}</code></td>
+        <tr class="${isChecked ? 'row-selected' : ''}">
+          <td class="col-check-cell">
+            <input type="checkbox" class="admin-row-check" data-check-order="${oid}" ${isChecked ? 'checked' : ''} aria-label="Chọn đơn #${oid}" />
+          </td>
+          <td>
+            <div class="admin-order-id">#${oid}</div>
+            <div class="admin-order-time">${o.createdAt || '---'}</div>
+          </td>
+          <td>
+            <div class="admin-customer-name">${o.name || '---'}</div>
+            ${o.quantity && o.quantity > 1 ? `<div class="admin-order-time">SL: ${o.quantity} cuốn</div>` : ''}
+          </td>
+          <td>
+            <div><a href="tel:${o.phone || ''}" class="admin-contact-phone">${o.phone || '---'}</a></div>
+            <div class="admin-contact-email" title="${o.email || ''}">${o.email || '<span style="color:var(--text-4);">Không có email</span>'}</div>
+          </td>
+          <td>
+            <div class="admin-address-text" title="${o.fullAddress || ''}">${o.fullAddress || '---'}</div>
+          </td>
+          <td>
+            <div class="admin-pkg-title">${o.pkgName || '---'}</div>
+          </td>
+          <td>
+            <div class="admin-amount-val">${formatMoney(o.total || 0)}</div>
+            <span class="admin-memo-code">${o.memo || `PTC${oid}`}</span>
+          </td>
           <td>
             <span class="${o.status === 'Đã thanh toán' ? 'badge-status-paid' : 'badge-status-pending'}">
               ${o.status || 'Chờ thanh toán'}
             </span>
           </td>
-          <td style="min-width:190px;">
-            ${isBookOnly ? '<span style="color:#64748b;font-size:11.5px;">Chỉ Sách In (Không PDF)</span>' : `
-              <div style="display:flex; flex-wrap:wrap; gap:5px;">
-                <button type="button" class="btn btn-ghost btn-sm" data-admin-dl-pdf="${o.id}" style="height:26px; padding:0 8px; font-size:11px;">
-                  <span>Tải PDF (#${o.id})</span>
+          <td>
+            <div class="admin-row-actions">
+              ${isBookOnly ? '<span style="color:var(--text-3);font-size:11px;font-weight:600;">Chỉ Sách In</span>' : `
+                <button type="button" class="btn btn-ghost btn-sm" data-admin-dl-pdf="${oid}" title="Tải file PDF đóng dấu của đơn #${oid}">
+                  <span>Tải PDF</span>
                 </button>
-                <button type="button" class="btn btn-green btn-sm" data-admin-send-pdf="${o.id}" style="height:26px; padding:0 8px; font-size:11px;">
-                  <span>${o.emailSent ? 'Gửi Lại / Thay Thế' : 'Gửi PDF Qua Mail'}</span>
+                <button type="button" class="btn btn-green btn-sm" data-admin-send-pdf="${oid}" title="Gửi hoặc gửi lại PDF qua Email">
+                  <span>${o.emailSent ? 'Gửi Lại Mail' : 'Gửi Mail'}</span>
                 </button>
-                ${o.watermarkedPdfUrl ? `<a href="${sbPdfLink}" target="_blank" rel="noopener" style="font-size:11px; color:#15803d; text-decoration:underline; align-self:center;">Link Supabase</a>` : ''}
-              </div>
-            `}
+              `}
+              <button type="button" class="btn btn-danger-outline btn-sm" data-admin-del-order="${oid}" title="Xóa đơn hàng #${oid}">
+                <svg class="ui-ico" style="width:12px;height:12px;" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path></svg>
+                <span>Xóa</span>
+              </button>
+              ${(!isBookOnly && o.watermarkedPdfUrl) ? `<a href="${sbPdfLink}" target="_blank" rel="noopener" style="font-size:10.5px; color:var(--green); font-weight:700; text-decoration:underline;">File Cloud</a>` : ''}
+            </div>
           </td>
         </tr>
       `}).join('');
 
+      tbody.querySelectorAll('[data-check-order]').forEach(chk => {
+        chk.addEventListener('change', () => {
+          const oid = chk.getAttribute('data-check-order');
+          if (!oid) return;
+          if (chk.checked) {
+            selectedOrderIds.add(oid);
+          } else {
+            selectedOrderIds.delete(oid);
+          }
+          const tr = chk.closest('tr');
+          if (tr) tr.classList.toggle('row-selected', chk.checked);
+          updateBulkActionButtons(filtered);
+          if (adminFilterCountBadge) {
+            adminFilterCountBadge.textContent = `Hiển thị: ${filtered.length} / ${orders.length} đơn${selectedOrderIds.size > 0 ? ` • Đã chọn ${selectedOrderIds.size}` : ''}`;
+          }
+        });
+      });
+
+      tbody.querySelectorAll('[data-admin-del-order]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const oid = btn.getAttribute('data-admin-del-order');
+          const ord = orders.find(x => String(x.id) === String(oid));
+          if (!oid) return;
+          const ok = window.confirm(`Xác nhận xóa đơn hàng #${oid}${ord && ord.name ? ` của khách "${ord.name}"` : ''}?`);
+          if (!ok) return;
+          await deleteOrdersByIds([oid]);
+          showToast(`Đã xóa đơn hàng #${oid} thành công.`);
+        });
+      });
+
       tbody.querySelectorAll('[data-admin-dl-pdf]').forEach(btn => {
         btn.addEventListener('click', async () => {
           const oid = btn.getAttribute('data-admin-dl-pdf');
-          const ord = orders.find(x => x.id === oid);
+          const ord = orders.find(x => String(x.id) === String(oid));
           if (!ord) return;
           await downloadWatermarkedPdf({
             orderId: ord.id,
@@ -1963,14 +2131,14 @@
             pkgName: ord.pkgName,
             total: ord.total
           }, btn, { autoSendEmail: false });
-          renderAdminOrders(adminSearchInput ? adminSearchInput.value : '');
+          renderAdminOrders();
         });
       });
 
       tbody.querySelectorAll('[data-admin-send-pdf]').forEach(btn => {
         btn.addEventListener('click', async () => {
           const oid = btn.getAttribute('data-admin-send-pdf');
-          const ord = orders.find(x => x.id === oid);
+          const ord = orders.find(x => String(x.id) === String(oid));
           if (!ord) return;
           let targetEmail = ord.email;
           if (!targetEmail) {
@@ -1996,7 +2164,7 @@
               ? adminUploadVersionNote.value.trim()
               : 'Bản cập nhật đầy đủ chi tiết từ kho lưu trữ Supabase của Lớp Toán Anh Chí'
           });
-          renderAdminOrders(adminSearchInput ? adminSearchInput.value : '');
+          renderAdminOrders();
         });
       });
     }
@@ -2059,7 +2227,7 @@
         adminSyncSupabaseBtn.disabled = true;
         await renderSupabasePdfTemplates();
         await syncOrdersFromSupabase();
-        renderAdminOrders(adminSearchInput ? adminSearchInput.value : '');
+        renderAdminOrders();
         populateRecipientOrderSelect();
         adminSyncSupabaseBtn.disabled = false;
         showToast('Đã đồng bộ dữ liệu PDF & Đơn hàng từ Supabase Cloud!');
@@ -2186,7 +2354,7 @@
           }
 
           await renderSupabasePdfTemplates();
-          renderAdminOrders(adminSearchInput ? adminSearchInput.value : '');
+          renderAdminOrders();
 
           if (adminUploadStatusBox) {
             adminUploadStatusBox.style.background = '#f0fdf4';
@@ -2305,12 +2473,80 @@
     if (adminLogoutBtn) adminLogoutBtn.addEventListener('click', handleLogout);
     if (adminExportCsvBtn) adminExportCsvBtn.addEventListener('click', exportToCsv);
     if (adminExportJsonBtn) adminExportJsonBtn.addEventListener('click', exportToJson);
-    if (adminRefreshBtn) adminRefreshBtn.addEventListener('click', () => {
-      renderAdminOrders(adminSearchInput ? adminSearchInput.value : '');
-      showToast('Đã làm mới danh sách.');
+    if (adminRefreshBtn) adminRefreshBtn.addEventListener('click', async () => {
+      await syncOrdersFromSupabase();
+      renderAdminOrders();
+      showToast('Đã đồng bộ & làm mới danh sách đơn hàng.');
     });
     if (adminSearchInput) {
-      adminSearchInput.addEventListener('input', (e) => renderAdminOrders(e.target.value));
+      adminSearchInput.addEventListener('input', () => renderAdminOrders());
+    }
+    if (adminSearchClearBtn) {
+      adminSearchClearBtn.addEventListener('click', () => {
+        if (adminSearchInput) adminSearchInput.value = '';
+        renderAdminOrders();
+        if (adminSearchInput) adminSearchInput.focus();
+      });
+    }
+    if (adminFilterStatus) {
+      adminFilterStatus.addEventListener('change', () => renderAdminOrders());
+    }
+    if (adminFilterPackage) {
+      adminFilterPackage.addEventListener('change', () => renderAdminOrders());
+    }
+    if (adminSortOrders) {
+      adminSortOrders.addEventListener('change', () => renderAdminOrders());
+    }
+    if (adminSelectAllOrders) {
+      adminSelectAllOrders.addEventListener('change', () => {
+        const checkboxes = document.querySelectorAll('#admin-table-body [data-check-order]');
+        checkboxes.forEach(chk => {
+          const oid = chk.getAttribute('data-check-order');
+          if (!oid) return;
+          if (adminSelectAllOrders.checked) {
+            selectedOrderIds.add(oid);
+          } else {
+            selectedOrderIds.delete(oid);
+          }
+        });
+        renderAdminOrders();
+      });
+    }
+    if (adminDeleteSelectedBtn) {
+      adminDeleteSelectedBtn.addEventListener('click', async () => {
+        const ids = Array.from(selectedOrderIds);
+        if (ids.length === 0) return;
+        const ok = window.confirm(`Xác nhận xóa ${ids.length} đơn hàng đã chọn khỏi danh sách quản trị?`);
+        if (!ok) return;
+        const count = await deleteOrdersByIds(ids);
+        showToast(`Đã xóa ${count} đơn hàng đã chọn.`);
+      });
+    }
+    if (adminDeletePendingBtn) {
+      adminDeletePendingBtn.addEventListener('click', async () => {
+        const pendingIds = getOrders().filter(o => o && o.status !== 'Đã thanh toán').map(o => String(o.id));
+        if (pendingIds.length === 0) {
+          showToast('Không có đơn hàng Chờ thanh toán nào để xóa.');
+          return;
+        }
+        const ok = window.confirm(`Xác nhận xóa toàn bộ ${pendingIds.length} đơn hàng đang ở trạng thái "Chờ thanh toán"?`);
+        if (!ok) return;
+        const count = await deleteOrdersByIds(pendingIds);
+        showToast(`Đã dọn sạch ${count} đơn hàng chờ thanh toán.`);
+      });
+    }
+    if (adminDeleteAllBtn) {
+      adminDeleteAllBtn.addEventListener('click', async () => {
+        const allIds = getOrders().map(o => String(o.id));
+        if (allIds.length === 0) {
+          showToast('Danh sách đơn hàng đang trống.');
+          return;
+        }
+        const ok = window.confirm(`CẢNH BÁO: Bạn có chắc chắn muốn XÓA TẤT CẢ ${allIds.length} đơn hàng khỏi hệ thống?`);
+        if (!ok) return;
+        const count = await deleteOrdersByIds(allIds);
+        showToast(`Đã xóa toàn bộ ${count} đơn hàng.`);
+      });
     }
     if (adminSaveSepayBtn) {
       adminSaveSepayBtn.addEventListener('click', () => {

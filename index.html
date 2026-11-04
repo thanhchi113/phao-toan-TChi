@@ -1104,7 +1104,7 @@
 
       <!-- State 2: Order Management Dashboard (Sau khi đăng nhập) -->
       <div class="admin-dashboard-box" id="admin-dashboard-box" style="display: none;">
-        <!-- Top Stats Row -->
+        <!-- Top Stats Row (4 cột cân đối theo giao diện web) -->
         <div class="admin-stats-row">
           <div class="admin-stat-card">
             <small>Tổng số đơn hàng</small>
@@ -1115,20 +1115,24 @@
             <b id="admin-stat-paid-orders" style="color: var(--green);">0</b>
           </div>
           <div class="admin-stat-card">
-            <small>Tổng doanh thu ghi nhận</small>
+            <small>Đơn chờ thanh toán</small>
+            <b id="admin-stat-pending-orders" style="color: #b45309;">0</b>
+          </div>
+          <div class="admin-stat-card">
+            <small>Tổng doanh thu thực nhận</small>
             <b id="admin-stat-revenue" style="color: var(--ink);">0 đ</b>
           </div>
         </div>
 
         <!-- SePay Live Connection Bar -->
-        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px;">
-          <div style="display: flex; align-items: center; gap: 8px; color: #166534;">
+        <div class="admin-sepay-bar">
+          <div class="admin-sepay-info">
             <span class="radar-ping" style="display:inline-block;"></span>
             <span><b>SePay &bull; BIDV 5801434567 (VA: 962478SJJ2):</b> Đang hoạt động 24/7 (Đã bật Cho phép toàn bộ truy cập)</span>
           </div>
-          <div style="display: flex; align-items: center; gap: 6px; flex: 1; max-width: 380px;">
-            <input type="text" id="admin-sepay-token-input" class="form-input" placeholder="SePay API Token / Cầu nối tự động..." style="padding: 6px 10px; font-size: 12.5px; height: 32px;">
-            <button type="button" class="btn btn-green btn-sm" id="admin-save-sepay-btn" style="height: 32px; padding: 0 12px; white-space: nowrap;">
+          <div class="admin-sepay-token-group">
+            <input type="text" id="admin-sepay-token-input" class="form-input admin-input-sm" placeholder="SePay API Token / Cầu nối tự động...">
+            <button type="button" class="btn btn-green btn-sm" id="admin-save-sepay-btn">
               <span>Lưu Token</span>
             </button>
           </div>
@@ -1137,68 +1141,68 @@
         <!-- ==================================================================
              KHO LƯU TRỮ PDF SUPABASE & UPLOAD FILE ĐẦY ĐỦ CHI TIẾT / THAY THẾ
              ================================================================== -->
-        <div class="admin-supabase-pdf-panel" id="admin-supabase-pdf-panel" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
-          <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px dashed #cbd5e1;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <div style="width: 34px; height: 34px; border-radius: 8px; background: #dcfce7; color: #15803d; display: grid; place-items: center; flex-shrink: 0;">
+        <div class="admin-supabase-pdf-panel" id="admin-supabase-pdf-panel">
+          <div class="admin-panel-header">
+            <div class="admin-panel-title-wrap">
+              <div class="admin-panel-icon">
                 <svg class="ui-ico" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
               </div>
               <div>
-                <h4 style="margin: 0; font-size: 15px; color: var(--ink-deep); font-weight: 800;">
+                <h4 class="admin-panel-heading">
                   Kho Lưu Trữ PDF Supabase &amp; Upload File Đầy Đủ Chi Tiết / Gửi File Thay Thế
                 </h4>
-                <p style="margin: 2px 0 0; font-size: 12px; color: #475569;">
+                <p class="admin-panel-sub">
                   Đã kết nối tự động 100% với <b>Supabase Storage (so-tay-toan-pdfs)</b> &bull; Tự động đóng dấu bản quyền Mã đơn và gửi cho khách hàng.
                 </p>
               </div>
             </div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span id="admin-supabase-conn-badge" style="background: #dcfce7; color: #166534; border: 1px solid #86efac; padding: 4px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 700;">
+            <div class="admin-panel-head-actions">
+              <span id="admin-supabase-conn-badge" class="admin-conn-pill">
                 Supabase Cloud: Đang hoạt động
               </span>
-              <button type="button" class="btn btn-ghost btn-sm" id="admin-sync-supabase-btn" style="height: 30px; padding: 0 10px; font-size: 12px;">
+              <button type="button" class="btn btn-ghost btn-sm" id="admin-sync-supabase-btn">
                 <svg class="ui-ico" style="width:13px;height:13px;" viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-                <span>Đồng bộ Supabase</span>
+                <span>Đồng Bộ Supabase</span>
               </button>
             </div>
           </div>
 
           <!-- Danh sách File PDF Gốc Đang Áp Dụng Trên Supabase -->
-          <div id="admin-active-pdf-list" style="margin-bottom: 14px; display: grid; gap: 8px;">
+          <div id="admin-active-pdf-list" class="admin-active-pdf-list">
             <!-- Rendered via JS -->
           </div>
 
           <!-- Form Upload File PDF Đầy Đủ Chi Tiết / File Thay Thế -->
-          <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px;">
-            <div style="font-weight: 700; font-size: 13.5px; color: var(--ink-deep); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
-              <svg class="ui-ico" style="width:15px;height:15px;color:var(--ink);" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+          <div class="admin-upload-box">
+            <div class="admin-upload-box-title">
+              <svg class="ui-ico" style="width:16px;height:16px;color:var(--ink);" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
               <span>Upload File PDF Đầy Đủ Chi Tiết / File Thay Thế Lên Supabase</span>
             </div>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 10px;">
+            <div class="admin-upload-grid">
               <!-- 1. Chọn File PDF -->
               <div>
-                <label class="form-label" for="admin-upload-pdf-file" style="font-size: 12px; margin-bottom: 4px; display: block;">
+                <label class="form-label" for="admin-upload-pdf-file">
                   1. Chọn file PDF từ máy (.pdf) <span class="req">*</span>
                 </label>
-                <input type="file" id="admin-upload-pdf-file" accept="application/pdf,.pdf" class="form-input" style="padding: 6px 8px; font-size: 12.5px; height: 38px; background: #f8fafc;">
-                <div id="admin-upload-file-meta" style="font-size: 11.5px; color: #0f766e; margin-top: 4px; font-weight: 600; display: none;"></div>
+                <input type="file" id="admin-upload-pdf-file" accept="application/pdf,.pdf" class="form-input admin-input-sm">
+                <div id="admin-upload-file-meta" class="admin-upload-meta" style="display: none;"></div>
               </div>
 
               <!-- 2. Tên hiển thị tài liệu -->
               <div>
-                <label class="form-label" for="admin-upload-pdf-title" style="font-size: 12px; margin-bottom: 4px; display: block;">
+                <label class="form-label" for="admin-upload-pdf-title">
                   2. Tên hiển thị tài liệu PDF
                 </label>
-                <input type="text" id="admin-upload-pdf-title" class="form-input" value="Sổ Tay Tóm Tắt Toán THPT - Bản Đầy Đủ Chi Tiết" placeholder="Nhập tên tài liệu..." style="padding: 7px 10px; font-size: 12.5px; height: 38px;">
+                <input type="text" id="admin-upload-pdf-title" class="form-input admin-input-sm" value="Sổ Tay Tóm Tắt Toán THPT - Bản Đầy Đủ Chi Tiết" placeholder="Nhập tên tài liệu...">
               </div>
 
               <!-- 3. Phạm vi gói áp dụng -->
               <div>
-                <label class="form-label" for="admin-upload-pdf-scope" style="font-size: 12px; margin-bottom: 4px; display: block;">
+                <label class="form-label" for="admin-upload-pdf-scope">
                   3. Áp dụng cho gói sản phẩm
                 </label>
-                <select id="admin-upload-pdf-scope" class="form-input" style="padding: 7px 10px; font-size: 12.5px; height: 38px;">
+                <select id="admin-upload-pdf-scope" class="form-input form-select admin-input-sm">
                   <option value="all">Tất cả các gói có bản sách điện tử (Mặc định)</option>
                   <option value="combo_12">Riêng gói COMBO Bứt Phá Điểm 9+ Tốt Nghiệp Lớp 12 (69.000 đ)</option>
                   <option value="combo">Riêng gói COMBO Vững Vàng Điểm Cao Giữa Kì Và Cuối Kì (49.000 đ)</option>
@@ -1208,10 +1212,10 @@
 
               <!-- 4. Chế độ xử lý & gửi file thay thế -->
               <div>
-                <label class="form-label" for="admin-upload-send-mode" style="font-size: 12px; margin-bottom: 4px; display: block;">
+                <label class="form-label" for="admin-upload-send-mode">
                   4. Chế độ lưu &amp; tự động gửi khách hàng
                 </label>
-                <select id="admin-upload-send-mode" class="form-input" style="padding: 7px 10px; font-size: 12.5px; height: 38px;">
+                <select id="admin-upload-send-mode" class="form-input form-select admin-input-sm">
                   <option value="new_only">Lưu lên Supabase &amp; tự động gửi cho mọi khách mua mới</option>
                   <option value="send_specific">Lưu lên Supabase &amp; đóng dấu gửi ngay cho 1 khách hàng cụ thể</option>
                   <option value="send_all_paid">Lưu lên Supabase &amp; đóng dấu gửi thay thế cho toàn bộ khách đã mua</option>
@@ -1220,35 +1224,35 @@
             </div>
 
             <!-- Khung chọn / điền thông tin khách nhận file thay thế cụ thể (Hiện khi chọn send_specific) -->
-            <div id="admin-replace-recipient-box" style="display: none; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px;">
-              <div style="font-size: 12px; font-weight: 700; color: #1e40af; margin-bottom: 8px;">
+            <div id="admin-replace-recipient-box" class="admin-recipient-box" style="display: none;">
+              <div class="admin-recipient-title">
                 Thông tin khách hàng nhận File PDF thay thế (Đóng dấu bản quyền riêng):
               </div>
-              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px;">
+              <div class="admin-recipient-grid">
                 <div>
-                  <select id="admin-replace-order-select" class="form-input" style="padding: 6px 8px; font-size: 12px; height: 34px;">
+                  <select id="admin-replace-order-select" class="form-input form-select admin-input-sm">
                     <option value="">-- Chọn nhanh từ đơn đã đặt --</option>
                   </select>
                 </div>
                 <div>
-                  <input type="text" id="admin-replace-order-id" class="form-input" placeholder="Mã đơn (VD: PTC882194)" style="padding: 6px 8px; font-size: 12px; height: 34px;">
+                  <input type="text" id="admin-replace-order-id" class="form-input admin-input-sm" placeholder="Mã đơn (VD: PTC882194)">
                 </div>
                 <div>
-                  <input type="text" id="admin-replace-name" class="form-input" placeholder="Họ tên khách hàng..." style="padding: 6px 8px; font-size: 12px; height: 34px;">
+                  <input type="text" id="admin-replace-name" class="form-input admin-input-sm" placeholder="Họ tên khách hàng...">
                 </div>
                 <div>
-                  <input type="text" id="admin-replace-phone" class="form-input" placeholder="SĐT khách hàng..." style="padding: 6px 8px; font-size: 12px; height: 34px;">
+                  <input type="text" id="admin-replace-phone" class="form-input admin-input-sm" placeholder="SĐT khách hàng...">
                 </div>
                 <div>
-                  <input type="email" id="admin-replace-email" class="form-input" placeholder="Email nhận file PDF..." style="padding: 6px 8px; font-size: 12px; height: 34px;">
+                  <input type="email" id="admin-replace-email" class="form-input admin-input-sm" placeholder="Email nhận file PDF...">
                 </div>
               </div>
             </div>
 
             <!-- Ghi chú phiên bản & Nút Upload -->
-            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
-              <input type="text" id="admin-upload-version-note" class="form-input" placeholder="Ghi chú chi tiết / Lời nhắn kèm theo (VD: Bản đầy đủ 126 trang + Đề thi thử mới nhất)..." style="flex: 1; min-width: 240px; padding: 7px 10px; font-size: 12.5px; height: 38px;">
-              <button type="button" class="btn btn-primary btn-sm" id="admin-upload-pdf-submit-btn" style="height: 38px; padding: 0 18px; white-space: nowrap;">
+            <div class="admin-upload-footer">
+              <input type="text" id="admin-upload-version-note" class="form-input admin-input-sm" placeholder="Ghi chú chi tiết / Lời nhắn kèm theo (VD: Bản đầy đủ 126 trang + Đề thi thử mới nhất)...">
+              <button type="button" class="btn btn-primary btn-sm" id="admin-upload-pdf-submit-btn">
                 <svg class="ui-ico" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                 <span>Upload Lên Supabase &amp; Áp Dụng Tự Động</span>
               </button>
@@ -1259,46 +1263,112 @@
           </div>
         </div>
 
-        <!-- Action Toolbar -->
-        <div class="admin-toolbar">
-          <div class="admin-search-wrap">
-            <svg class="ui-ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            <input type="text" id="admin-search-input" placeholder="Tìm kiếm theo Tên, SĐT, Email, Mã đơn...">
+        <!-- ==================================================================
+             THANH CÔNG CỤ TÌM KIẾM, LỌC ĐƠN HÀNG & XÓA / XUẤT DỮ LIỆU
+             ================================================================== -->
+        <div class="admin-toolbar-card">
+          <div class="admin-filter-row">
+            <!-- Ô tìm kiếm đa năng -->
+            <div class="admin-search-wrap">
+              <svg class="ui-ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="text" id="admin-search-input" class="form-input admin-input-sm" placeholder="Tìm theo Mã đơn (#PTC...), Tên khách, SĐT, Email, Địa chỉ...">
+              <button type="button" id="admin-search-clear-btn" class="admin-search-clear" title="Xóa từ khóa tìm kiếm" style="display: none;">&times;</button>
+            </div>
+
+            <!-- Bộ lọc trạng thái -->
+            <div class="admin-filter-item">
+              <select id="admin-filter-status" class="form-input form-select admin-input-sm" aria-label="Lọc theo trạng thái">
+                <option value="all">Tất cả trạng thái</option>
+                <option value="paid">Đã thanh toán</option>
+                <option value="pending">Chờ thanh toán</option>
+              </select>
+            </div>
+
+            <!-- Bộ lọc gói sản phẩm -->
+            <div class="admin-filter-item">
+              <select id="admin-filter-package" class="form-input form-select admin-input-sm" aria-label="Lọc theo gói sản phẩm">
+                <option value="all">Tất cả gói Combo</option>
+                <option value="combo_12">COMBO Bứt Phá Điểm 9+ Lớp 12 (69.000 đ)</option>
+                <option value="combo">COMBO Vững Vàng Điểm Cao (49.000 đ)</option>
+                <option value="print">COMBO Tra Cứu Linh Hoạt (39.000 đ)</option>
+                <option value="book_only">COMBO Sổ Tay Cầm Tay (29.000 đ)</option>
+              </select>
+            </div>
+
+            <!-- Sắp xếp -->
+            <div class="admin-filter-item">
+              <select id="admin-sort-orders" class="form-input form-select admin-input-sm" aria-label="Sắp xếp đơn hàng">
+                <option value="newest">Mới nhất trước</option>
+                <option value="oldest">Cũ nhất trước</option>
+                <option value="amount_desc">Số tiền cao &rarr; thấp</option>
+                <option value="name_asc">Tên khách A &rarr; Z</option>
+              </select>
+            </div>
           </div>
 
-          <div class="admin-actions-btns">
-            <button type="button" class="btn btn-green btn-sm" id="admin-export-csv-btn" title="Tải toàn bộ danh sách khách hàng về file Excel tiếng Việt">
-              <svg class="ui-ico" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-              <span>Tải Excel (CSV)</span>
-            </button>
-            <button type="button" class="btn btn-ghost btn-sm" id="admin-export-json-btn" title="Sao lưu dữ liệu JSON">
-              <span>Sao Lưu JSON</span>
-            </button>
-            <button type="button" class="btn btn-ghost btn-sm" id="admin-refresh-btn" title="Làm mới bảng">
-              <svg class="ui-ico" viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-            </button>
-            <button type="button" class="btn btn-ghost btn-sm" id="admin-logout-btn" title="Đăng xuất Admin">
-              <span>Đăng Xuất</span>
-            </button>
+          <div class="admin-actions-row">
+            <div class="admin-selection-info">
+              <span id="admin-filter-count-badge" class="admin-count-pill">Hiển thị 0 / 0 đơn hàng</span>
+              <button type="button" class="btn btn-danger-outline btn-sm" id="admin-delete-selected-btn" disabled title="Xóa các đơn hàng đang tích chọn">
+                <svg class="ui-ico" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                <span id="admin-delete-selected-label">Xóa Đã Chọn (0)</span>
+              </button>
+              <button type="button" class="btn btn-danger-outline btn-sm" id="admin-delete-pending-btn" title="Dọn dẹp toàn bộ các đơn đang ở trạng thái Chờ thanh toán">
+                <svg class="ui-ico" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                <span>Xóa Đơn Chờ TT</span>
+              </button>
+              <button type="button" class="btn btn-danger btn-sm" id="admin-delete-all-btn" title="Xóa toàn bộ danh sách đơn hàng">
+                <svg class="ui-ico" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                <span>Xóa Tất Cả</span>
+              </button>
+            </div>
+
+            <div class="admin-actions-btns">
+              <button type="button" class="btn btn-green btn-sm" id="admin-export-csv-btn" title="Tải danh sách khách hàng về file Excel tiếng Việt">
+                <svg class="ui-ico" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                <span>Tải Excel (CSV)</span>
+              </button>
+              <button type="button" class="btn btn-ghost btn-sm" id="admin-export-json-btn" title="Sao lưu dữ liệu JSON">
+                <span>Sao Lưu JSON</span>
+              </button>
+              <button type="button" class="btn btn-ghost btn-sm" id="admin-refresh-btn" title="Làm mới bảng &amp; đồng bộ Supabase">
+                <svg class="ui-ico" viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                <span>Làm Mới</span>
+              </button>
+              <button type="button" class="btn btn-ghost btn-sm" id="admin-logout-btn" title="Đăng xuất Admin">
+                <span>Đăng Xuất</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        <!-- Table of Customers & Orders -->
+        <!-- Table of Customers & Orders (Các cột chia tỉ lệ cân đối) -->
         <div class="admin-table-wrap">
           <table class="admin-table" id="admin-orders-table">
+            <colgroup>
+              <col class="col-check">
+              <col class="col-id">
+              <col class="col-customer">
+              <col class="col-contact">
+              <col class="col-address">
+              <col class="col-package">
+              <col class="col-amount">
+              <col class="col-status">
+              <col class="col-actions">
+            </colgroup>
             <thead>
               <tr>
-                <th>Mã Đơn</th>
-                <th>Thời Gian</th>
+                <th class="cell-check">
+                  <input type="checkbox" id="admin-select-all-orders" class="admin-row-checkbox" title="Chọn / Bỏ chọn tất cả đơn đang hiển thị">
+                </th>
+                <th>Mã Đơn &amp; Thời Gian</th>
                 <th>Khách Hàng</th>
-                <th>Số Điện Thoại</th>
-                <th>Email</th>
+                <th>Điện Thoại &amp; Email</th>
                 <th>Địa Chỉ Nhận Sách</th>
                 <th>Gói Sản Phẩm</th>
-                <th>Số Tiền</th>
-                <th>Nội Dung CK</th>
+                <th>Số Tiền &amp; Mã CK</th>
                 <th>Trạng Thái</th>
-                <th>File PDF Bản Quyền (Supabase)</th>
+                <th>File PDF &amp; Thao Tác</th>
               </tr>
             </thead>
             <tbody id="admin-table-body">
@@ -1306,7 +1376,7 @@
             </tbody>
           </table>
           <div class="admin-empty-notice" id="admin-empty-notice" style="display: none;">
-            Chưa có đơn hàng nào được lưu trong cơ sở dữ liệu.
+            Không tìm thấy đơn hàng nào khớp với bộ lọc hiện tại.
           </div>
         </div>
       </div>
