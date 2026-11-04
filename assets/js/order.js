@@ -38,7 +38,7 @@
   const PACKAGES = {
     combo_12: {
       id: 'combo_12',
-      name: 'COMBO Toàn Diện Cho Học Sinh 12 (Sách + Ebook PDF + Đề Thi Thử & Giải Trường Sở + File Chuyên Đề)',
+      name: 'COMBO Toàn Diện Chinh Phục Toán Lớp 12',
       price: 69000,
       oldPrice: 199000,
       shipping: 0,
@@ -48,7 +48,7 @@
     },
     combo: {
       id: 'combo',
-      name: 'COMBO: Sách, Ebook PDF, Đề Thi Thử GK, CK 10-11-12',
+      name: 'COMBO Luyện Đề Học Kì Toán Lớp 10, Lớp 11, Lớp 12',
       price: 49000,
       oldPrice: 100000,
       shipping: 0,
@@ -58,7 +58,7 @@
     },
     print: {
       id: 'print',
-      name: 'COMBO: Sách, Ebook PDF',
+      name: 'COMBO Sách Giấy In Màu Kết Hợp Bản Điện Tử',
       price: 39000,
       oldPrice: 70000,
       shipping: 0,
@@ -68,7 +68,7 @@
     },
     book_only: {
       id: 'book_only',
-      name: 'COMBO Chỉ Sách (Sách Giấy In Màu A5)',
+      name: 'COMBO Tiêu Chuẩn Chỉ Sách Giấy In Màu',
       price: 29000,
       oldPrice: 50000,
       shipping: 0,
@@ -1706,10 +1706,10 @@
     }
 
     function getScopeLabel(scope) {
-      if (scope === 'combo_12') return 'COMBO Toàn Diện Lớp 12 (69.000 đ)';
-      if (scope === 'combo') return 'COMBO Sách + PDF + Đề 10-11-12 (49.000 đ)';
-      if (scope === 'print') return 'COMBO Sách + Ebook PDF (39.000 đ)';
-      return 'Mặc định cho TẤT CẢ gói có PDF';
+      if (scope === 'combo_12') return 'COMBO Toàn Diện Chinh Phục Toán Lớp 12 (69.000 đ)';
+      if (scope === 'combo') return 'COMBO Luyện Đề Học Kì Toán Lớp 10, Lớp 11, Lớp 12 (49.000 đ)';
+      if (scope === 'print') return 'COMBO Sách Giấy In Màu Kết Hợp Bản Điện Tử (39.000 đ)';
+      return 'Mặc định cho TẤT CẢ gói có sách điện tử';
     }
 
     function openAdminModal() {
