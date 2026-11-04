@@ -34,11 +34,21 @@
     return va !== raw ? `${va} (TK gốc: ${raw})` : raw;
   }
 
-  // Packages: Áp dụng hiệu ứng chim mồi & Săn sale (49k - 39k - 29k, giảm > 50%)
+  // Packages: Áp dụng hiệu ứng chim mồi & Săn sale (69k - 49k - 39k - 29k, giảm đến 65%)
   const PACKAGES = {
+    combo_12: {
+      id: 'combo_12',
+      name: 'COMBO Toàn Diện Cho Học Sinh 12 (Sách + Ebook PDF + Đề Thi Thử & Giải Trường Sở + File Chuyên Đề)',
+      price: 69000,
+      oldPrice: 199000,
+      shipping: 0,
+      hasPdf: true,
+      isDigital: false,
+      isPhysical: true
+    },
     combo: {
       id: 'combo',
-      name: 'COMBO: Sách, Ebook PDF, Đề GK, CK 10-11-12',
+      name: 'COMBO: Sách, Ebook PDF, Đề Thi Thử GK, CK 10-11-12',
       price: 49000,
       oldPrice: 100000,
       shipping: 0,
@@ -69,7 +79,7 @@
   };
 
   // State
-  let selectedPackage = 'combo';
+  let selectedPackage = 'combo_12';
   let selectedDelivery = 'pickup'; // 'pickup' (Ghé 84/11 Đô Đốc Bảo: 0đ) | 'ship_qn' (Giao tại Quy Nhơn: 10.000đ)
   let quantity = 1;
   let activeQrTab = 'vietqr';
