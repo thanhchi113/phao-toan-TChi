@@ -38,7 +38,7 @@
   const PACKAGES = {
     combo: {
       id: 'combo',
-      name: 'COMBO Toàn Diện (Sách Giấy In + Bản PDF VIP + Video)',
+      name: 'COMBO Toàn Diện (Sách Giấy In + Bản PDF VIP + Kho Đề & Chuyên Đề 12)',
       price: 49000,
       oldPrice: 100000,
       shipping: 0,
@@ -50,7 +50,7 @@
       name: 'Sổ Tay In Giấy Màu A5 Cao Cấp (Bản Cầm Tay)',
       price: 39000,
       oldPrice: 70000,
-      shipping: 20000,
+      shipping: 0,
       isDigital: false,
       isPhysical: true
     },
@@ -67,6 +67,7 @@
 
   // State
   let selectedPackage = 'combo';
+  let selectedDelivery = 'pickup'; // 'pickup' (Ghé 84/11 Đô Đốc Bảo: 0đ) | 'ship_qn' (Giao tại Quy Nhơn: 10.000đ)
   let quantity = 1;
   let activeQrTab = 'vietqr';
   let currentOrderId = generateOrderId();
@@ -87,6 +88,9 @@
   // DOM Elements
   const formCardEl = document.querySelector('.form-card');
   const addressFieldsCard = document.getElementById('address-fields-card');
+  const deliveryItems = document.querySelectorAll('.qn-delivery-item');
+  const qnPickupBox = document.getElementById('qn-pickup-box');
+  const qnShipFields = document.getElementById('qn-ship-fields');
   const packageItems = document.querySelectorAll('.package-item');
   const qtyMinusBtn = document.getElementById('qty-minus-btn');
   const qtyPlusBtn = document.getElementById('qty-plus-btn');
@@ -173,7 +177,7 @@
 
     const pkg = PACKAGES[selectedPackage];
     const subtotal = pkg.price * quantity;
-    const shipping = pkg.shipping || 0;
+    const shipping = pkg.isPhysical ? (selectedDelivery === 'ship_qn' ? 10000 : 0) : 0;
     const total = subtotal + shipping;
 
     const phone = phoneInput ? phoneInput.value.replace(/\D/g, '') : '';
@@ -251,12 +255,26 @@
     if (addressFieldsCard) {
       addressFieldsCard.style.display = pkg.isPhysical ? 'block' : 'none';
     }
+    if (qnPickupBox) {
+      qnPickupBox.style.display = selectedDelivery === 'pickup' ? 'flex' : 'none';
+    }
+    if (qnShipFields) {
+      qnShipFields.style.display = selectedDelivery === 'ship_qn' ? 'block' : 'none';
+    }
 
     if (sumPkgNameEl) sumPkgNameEl.textContent = `${pkg.name} (x${quantity})`;
     if (sumSubtotalEl) sumSubtotalEl.textContent = formatMoney(subtotal);
     if (sumShippingEl) {
-      sumShippingEl.textContent = shipping === 0 ? 'Miễn phí (0 đ)' : formatMoney(shipping);
-      sumShippingEl.style.color = shipping === 0 ? 'var(--green)' : 'var(--text)';
+      if (!pkg.isPhysical) {
+        sumShippingEl.textContent = 'Nhận trực tuyến (0 đ)';
+        sumShippingEl.style.color = 'var(--green)';
+      } else if (selectedDelivery === 'pickup') {
+        sumShippingEl.textContent = 'Ghé 84/11 Đô Đốc Bảo (0 đ)';
+        sumShippingEl.style.color = 'var(--green)';
+      } else {
+        sumShippingEl.textContent = '10.000 đ (Giao tại Quy Nhơn)';
+        sumShippingEl.style.color = 'var(--text)';
+      }
     }
     if (sumTotalEl) sumTotalEl.textContent = formatMoney(total);
     if (qrGateAmountEl) qrGateAmountEl.textContent = formatMoney(total);
@@ -662,7 +680,7 @@
               <span>Tải Ngay Sổ Tay Toán THPT (Bản VIP)</span>
             </a>
             <div style="font-size:12.5px; color:#15803d; line-height:1.4;">
-              ${pkg.isPhysical ? '<svg class="ui-ico" style="width:13px;height:13px;vertical-align:-2px;color:#15803d;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Bản sách in giấy màu cao cấp của bạn sẽ được Thầy Huỳnh Thanh Chí đóng gói và gửi chuyển phát nhanh sớm nhất!' : '<svg class="ui-ico" style="width:13px;height:13px;vertical-align:-2px;color:#15803d;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Bạn có thể bấm nút trên để tải trực tiếp file PDF bản quyền về điện thoại hoặc máy tính!'}
+              ${pkg.isPhysical ? (selectedDelivery === 'pickup' ? '<svg class="ui-ico" style="width:13px;height:13px;vertical-align:-2px;color:#15803d;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Mời bạn ghé nhận sách in trực tiếp tại địa chỉ của Thầy Chí: <b>84/11 Đô Đốc Bảo, TP. Quy Nhơn</b>!' : '<svg class="ui-ico" style="width:13px;height:13px;vertical-align:-2px;color:#15803d;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Bản sách in giấy màu cao cấp của bạn sẽ được Thầy Huỳnh Thanh Chí trực tiếp giao tận nơi tại Quy Nhơn!') : '<svg class="ui-ico" style="width:13px;height:13px;vertical-align:-2px;color:#15803d;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Bạn có thể bấm nút trên để tải trực tiếp file PDF bản quyền về điện thoại hoặc máy tính!'}
             </div>
           </div>
 
@@ -707,13 +725,34 @@
   }
 
   // Validate Form
-  // Helper: Lấy địa chỉ chuẩn địa chính Việt Nam
+  // Helper: Lấy địa chỉ nhận sách tại TP. Quy Nhơn
   function getCombinedAddress() {
-    const province = provinceInput ? provinceInput.value.trim() : '';
-    const district = districtInput ? districtInput.value.trim() : '';
+    const pkg = PACKAGES[selectedPackage];
+    if (!pkg.isPhysical) {
+      return {
+        province: 'Bình Định',
+        district: 'TP. Quy Nhơn',
+        ward: 'Trực tuyến',
+        street: 'Nhận qua Zalo & Email',
+        full: 'Bản đọc trực tuyến (Zalo & Email)'
+      };
+    }
+
+    if (selectedDelivery === 'pickup') {
+      return {
+        province: 'Bình Định',
+        district: 'TP. Quy Nhơn',
+        ward: 'Đô Đốc Bảo',
+        street: '84/11 Đô Đốc Bảo',
+        full: 'Ghé nhận trực tiếp tại 84/11 Đô Đốc Bảo, TP. Quy Nhơn'
+      };
+    }
+
+    const province = 'Bình Định';
+    const district = 'TP. Quy Nhơn';
     const ward = wardInput ? wardInput.value.trim() : '';
     const street = streetInput ? streetInput.value.trim() : '';
-    const full = [street, ward, district, province].filter(Boolean).join(', ');
+    const full = [street, ward, district, `${province} (Thầy giao +10.000đ)`].filter(Boolean).join(', ');
     return { province, district, ward, street, full };
   }
 
@@ -742,25 +781,15 @@
     }
 
     const pkg = PACKAGES[selectedPackage];
-    if (pkg.isPhysical) {
+    if (pkg.isPhysical && selectedDelivery === 'ship_qn') {
       const addr = getCombinedAddress();
-      if (!addr.province) {
-        showToast('Vui lòng chọn Tỉnh / Thành phố nhận sách!');
-        if (provinceInput) provinceInput.focus();
-        return false;
-      }
-      if (!addr.district) {
-        showToast('Vui lòng nhập Quận / Huyện / Thị xã nhận sách!');
-        if (districtInput) districtInput.focus();
-        return false;
-      }
       if (!addr.ward) {
-        showToast('Vui lòng nhập Phường / Xã / Thị trấn nhận sách!');
+        showToast('Vui lòng chọn Phường / Xã tại TP. Quy Nhơn để Thầy giao sách!');
         if (wardInput) wardInput.focus();
         return false;
       }
       if (!addr.street) {
-        showToast('Vui lòng nhập Số nhà, tên đường hoặc thôn xóm!');
+        showToast('Vui lòng nhập Số nhà, tên đường hoặc hẻm tại Quy Nhơn!');
         if (streetInput) streetInput.focus();
         return false;
       }
@@ -871,6 +900,21 @@
         packageItems.forEach(i => i.classList.remove('selected'));
         item.classList.add('selected');
         selectedPackage = item.dataset.package;
+        updateOrderDisplay();
+      });
+    });
+
+    // Quy Nhon delivery / pickup selection
+    deliveryItems.forEach(item => {
+      item.addEventListener('click', () => {
+        if (isQrGenerated) return;
+        deliveryItems.forEach(i => {
+          i.classList.remove('selected');
+          i.setAttribute('aria-checked', 'false');
+        });
+        item.classList.add('selected');
+        item.setAttribute('aria-checked', 'true');
+        selectedDelivery = item.dataset.delivery || 'pickup';
         updateOrderDisplay();
       });
     });
