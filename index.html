@@ -501,15 +501,105 @@
               </div>
             </div>
 
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label" for="order-email">Email nhận file Ebook / Hóa đơn</label>
-                <input type="email" id="order-email" class="form-input" placeholder="Ví dụ: an.nguyen@gmail.com">
+            <div class="form-group">
+              <label class="form-label" for="order-email">Email nhận file PDF VIP &amp; Biên lai đơn hàng <span class="req">*</span></label>
+              <input type="email" id="order-email" class="form-input" placeholder="Ví dụ: an.nguyen@gmail.com (Dùng để nhận file tức thì & tra cứu)" required>
+            </div>
+
+            <!-- Khối Địa Chỉ Nhận Sách Theo Chuẩn Địa Chính Việt Nam -->
+            <div class="address-fields-card" id="address-fields-card">
+              <div class="address-fields-title">
+                <svg class="ui-ico" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                <span>Địa Chỉ Nhận Sách In (Chuẩn Địa Chính Bưu Điện)</span>
               </div>
 
-              <div class="form-group">
-                <label class="form-label" for="order-address">Địa chỉ nhận sách (Số nhà, đường, phường/xã, tỉnh/TP)</label>
-                <input type="text" id="order-address" class="form-input" placeholder="Ví dụ: 123 Lê Duẩn, P. Bến Nghé, Q.1, TP.HCM">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="order-province">Tỉnh / Thành phố <span class="req">*</span></label>
+                  <select id="order-province" class="form-input form-select" required>
+                    <option value="">-- Chọn Tỉnh / Thành phố --</option>
+                    <option value="Hà Nội">Hà Nội</option>
+                    <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
+                    <option value="Đà Nẵng">Đà Nẵng</option>
+                    <option value="Hải Phòng">Hải Phòng</option>
+                    <option value="Cần Thơ">Cần Thơ</option>
+                    <option value="An Giang">An Giang</option>
+                    <option value="Bà Rịa - Vũng Tàu">Bà Rịa - Vũng Tàu</option>
+                    <option value="Bắc Giang">Bắc Giang</option>
+                    <option value="Bắc Kạn">Bắc Kạn</option>
+                    <option value="Bạc Liêu">Bạc Liêu</option>
+                    <option value="Bắc Ninh">Bắc Ninh</option>
+                    <option value="Bến Tre">Bến Tre</option>
+                    <option value="Bình Định">Bình Định</option>
+                    <option value="Bình Dương">Bình Dương</option>
+                    <option value="Bình Phước">Bình Phước</option>
+                    <option value="Bình Thuận">Bình Thuận</option>
+                    <option value="Cà Mau">Cà Mau</option>
+                    <option value="Cao Bằng">Cao Bằng</option>
+                    <option value="Đắk Lắk">Đắk Lắk</option>
+                    <option value="Đắk Nông">Đắk Nông</option>
+                    <option value="Điện Biên">Điện Biên</option>
+                    <option value="Đồng Nai">Đồng Nai</option>
+                    <option value="Đồng Tháp">Đồng Tháp</option>
+                    <option value="Gia Lai">Gia Lai</option>
+                    <option value="Hà Giang">Hà Giang</option>
+                    <option value="Hà Nam">Hà Nam</option>
+                    <option value="Hà Tĩnh">Hà Tĩnh</option>
+                    <option value="Hải Dương">Hải Dương</option>
+                    <option value="Hậu Giang">Hậu Giang</option>
+                    <option value="Hòa Bình">Hòa Bình</option>
+                    <option value="Hưng Yên">Hưng Yên</option>
+                    <option value="Khánh Hòa">Khánh Hòa</option>
+                    <option value="Kiên Giang">Kiên Giang</option>
+                    <option value="Kon Tum">Kon Tum</option>
+                    <option value="Lai Châu">Lai Châu</option>
+                    <option value="Lâm Đồng">Lâm Đồng</option>
+                    <option value="Lạng Sơn">Lạng Sơn</option>
+                    <option value="Lào Cai">Lào Cai</option>
+                    <option value="Long An">Long An</option>
+                    <option value="Nam Định">Nam Định</option>
+                    <option value="Nghệ An">Nghệ An</option>
+                    <option value="Ninh Bình">Ninh Bình</option>
+                    <option value="Ninh Thuận">Ninh Thuận</option>
+                    <option value="Phú Thọ">Phú Thọ</option>
+                    <option value="Phú Yên">Phú Yên</option>
+                    <option value="Quảng Bình">Quảng Bình</option>
+                    <option value="Quảng Nam">Quảng Nam</option>
+                    <option value="Quảng Ngãi">Quảng Ngãi</option>
+                    <option value="Quảng Ninh">Quảng Ninh</option>
+                    <option value="Quảng Trị">Quảng Trị</option>
+                    <option value="Sóc Trăng">Sóc Trăng</option>
+                    <option value="Sơn La">Sơn La</option>
+                    <option value="Tây Ninh">Tây Ninh</option>
+                    <option value="Thái Bình">Thái Bình</option>
+                    <option value="Thái Nguyên">Thái Nguyên</option>
+                    <option value="Thanh Hóa">Thanh Hóa</option>
+                    <option value="Thừa Thiên Huế">Thừa Thiên Huế</option>
+                    <option value="Tiền Giang">Tiền Giang</option>
+                    <option value="Trà Vinh">Trà Vinh</option>
+                    <option value="Tuyên Quang">Tuyên Quang</option>
+                    <option value="Vĩnh Long">Vĩnh Long</option>
+                    <option value="Vĩnh Phúc">Vĩnh Phúc</option>
+                    <option value="Yên Bái">Yên Bái</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="order-district">Quận / Huyện / Thị xã <span class="req">*</span></label>
+                  <input type="text" id="order-district" class="form-input" placeholder="Ví dụ: Quận Cầu Giấy / Huyện Thạch Thất" required>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="order-ward">Phường / Xã / Thị trấn <span class="req">*</span></label>
+                  <input type="text" id="order-ward" class="form-input" placeholder="Ví dụ: Phường Dịch Vọng Hậu" required>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="order-street">Số nhà, Tên đường, Thôn/Xóm <span class="req">*</span></label>
+                  <input type="text" id="order-street" class="form-input" placeholder="Ví dụ: Số 25 ngõ 12 đường Cầu Giấy" required>
+                </div>
               </div>
             </div>
 
@@ -571,17 +661,7 @@
             </div>
           </div>
 
-          <!-- QR Mode Tabs -->
-          <div class="qr-tabs">
-            <button type="button" class="qr-tab-btn active" id="qr-tab-auto" title="Tự động điền đúng số tiền và nội dung đơn hàng">
-              <span>VietQR Tự Động (Theo Đơn)</span>
-            </button>
-            <button type="button" class="qr-tab-btn" id="qr-tab-card" title="Xem thẻ mã QR OCB gốc của Thầy Chí">
-              <span>Thẻ OCB Gốc Thầy Chí</span>
-            </button>
-          </div>
-
-          <!-- QR Code Display Box with Overlays -->
+          <!-- QR Code Display Box with Overlays (Tự động liên kết Webhook theo đơn) -->
           <div class="qr-display-box" id="qr-display-box">
             <div class="qr-img-frame">
               <img id="qr-main-image" src="https://img.vietqr.io/image/OCB-0169100000679007-compact2.png?amount=49000&addInfo=PTC882194%200905957716&accountName=HUYNH%20THANH%20CHI" alt="Mã QR Chuyển Khoản Ngân Hàng OCB">
@@ -612,10 +692,10 @@
             </div>
           </div>
 
-          <!-- Live Radar Auto-Check Badge -->
+          <!-- Live Radar Auto-Check Badge (Tự liên kết Webhook) -->
           <div class="auto-check-badge" id="auto-check-badge">
             <span class="radar-ping"></span>
-            <span id="auto-check-text">Hệ thống đang tự động quét biến động số dư OCB...</span>
+            <span id="auto-check-text">Hệ thống đang tự động liên kết Webhook đối soát OCB...</span>
           </div>
 
           <!-- Bank Details Breakdown -->
@@ -755,8 +835,12 @@
         </div>
       </div>
 
-      <div class="footer-bottom">
-        &copy; 2026 Lớp Toán Anh Chí &bull; Thầy Huỳnh Thanh Chí. Toàn bộ quyền được bảo lưu.
+      <div class="footer-bottom" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <span>&copy; 2026 Lớp Toán Anh Chí &bull; Thầy Huỳnh Thanh Chí. Toàn bộ quyền được bảo lưu.</span>
+        <a href="#admin" id="open-admin-btn" class="footer-admin-link" title="Dành riêng cho Thầy Chí quản trị và tải dữ liệu đơn hàng (Phím tắt: Ctrl + Shift + A)">
+          <svg class="ui-ico" style="width:13px;height:13px;vertical-align:-2px;" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <span>Quản Trị Đơn Hàng (Admin)</span>
+        </a>
       </div>
     </div>
   </footer>
@@ -845,6 +929,114 @@
         <button type="button" class="btn btn-ghost" onclick="document.getElementById('order-modal-backdrop').classList.remove('open')" style="width: 100%;">
           <span>Đóng Cửa Sổ Này</span>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       10. ADMIN ORDER MANAGEMENT MODAL (DÀNH RIÊNG CHO THẦY HUỲNH THANH CHÍ)
+       ====================================================================== -->
+  <div class="admin-modal-backdrop" id="admin-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="admin-panel-title">
+    <div class="admin-modal-card">
+      <!-- Header -->
+      <div class="admin-modal-head">
+        <div class="admin-head-left">
+          <div class="admin-shield-ico">
+            <svg class="ui-ico" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          </div>
+          <div>
+            <h3 id="admin-panel-title" class="admin-title">Quản Trị Đơn Hàng &bull; Thầy Huỳnh Thanh Chí</h3>
+            <p class="admin-desc">Bảo mật thông tin khách hàng, số điện thoại, email và xuất file Excel</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" id="admin-close-btn" aria-label="Đóng">&times;</button>
+      </div>
+
+      <!-- State 1: Password Gate (Khi chưa đăng nhập) -->
+      <div class="admin-gate-box" id="admin-gate-box">
+        <div class="admin-gate-inner">
+          <div class="admin-lock-icon">
+            <svg class="ui-ico" style="width:36px;height:36px;color:var(--ink);" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          </div>
+          <h4>Xác Thực Quyền Quản Trị Viên</h4>
+          <p>Chỉ Thầy Huỳnh Thanh Chí mới có quyền truy cập cơ sở dữ liệu khách hàng.</p>
+          <div class="admin-pin-group">
+            <input type="password" id="admin-password-input" class="form-input" placeholder="Nhập mật khẩu Admin..." autocomplete="current-password">
+            <button type="button" class="btn btn-primary" id="admin-login-btn">
+              <span>Đăng Nhập</span>
+            </button>
+          </div>
+          <div class="admin-gate-hint">Mật khẩu mặc định: <code>thanhchi113</code> (Cấu hình trong <code>payment-config.js</code>)</div>
+        </div>
+      </div>
+
+      <!-- State 2: Order Management Dashboard (Sau khi đăng nhập) -->
+      <div class="admin-dashboard-box" id="admin-dashboard-box" style="display: none;">
+        <!-- Top Stats Row -->
+        <div class="admin-stats-row">
+          <div class="admin-stat-card">
+            <small>Tổng số đơn hàng</small>
+            <b id="admin-stat-total-orders">0</b>
+          </div>
+          <div class="admin-stat-card">
+            <small>Đơn đã thanh toán</small>
+            <b id="admin-stat-paid-orders" style="color: var(--green);">0</b>
+          </div>
+          <div class="admin-stat-card">
+            <small>Tổng doanh thu ghi nhận</small>
+            <b id="admin-stat-revenue" style="color: var(--ink);">0 đ</b>
+          </div>
+        </div>
+
+        <!-- Action Toolbar -->
+        <div class="admin-toolbar">
+          <div class="admin-search-wrap">
+            <svg class="ui-ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="admin-search-input" placeholder="Tìm kiếm theo Tên, SĐT, Email, Mã đơn...">
+          </div>
+
+          <div class="admin-actions-btns">
+            <button type="button" class="btn btn-green btn-sm" id="admin-export-csv-btn" title="Tải toàn bộ danh sách khách hàng về file Excel tiếng Việt">
+              <svg class="ui-ico" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              <span>Tải Excel (CSV)</span>
+            </button>
+            <button type="button" class="btn btn-ghost btn-sm" id="admin-export-json-btn" title="Sao lưu dữ liệu JSON">
+              <span>Sao Lưu JSON</span>
+            </button>
+            <button type="button" class="btn btn-ghost btn-sm" id="admin-refresh-btn" title="Làm mới bảng">
+              <svg class="ui-ico" viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            </button>
+            <button type="button" class="btn btn-ghost btn-sm" id="admin-logout-btn" title="Đăng xuất Admin">
+              <span>Đăng Xuất</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Table of Customers & Orders -->
+        <div class="admin-table-wrap">
+          <table class="admin-table" id="admin-orders-table">
+            <thead>
+              <tr>
+                <th>Mã Đơn</th>
+                <th>Thời Gian</th>
+                <th>Khách Hàng</th>
+                <th>Số Điện Thoại</th>
+                <th>Email</th>
+                <th>Địa Chỉ Nhận Sách</th>
+                <th>Gói Sản Phẩm</th>
+                <th>Số Tiền</th>
+                <th>Nội Dung CK</th>
+                <th>Trạng Thái</th>
+              </tr>
+            </thead>
+            <tbody id="admin-table-body">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+          <div class="admin-empty-notice" id="admin-empty-notice" style="display: none;">
+            Chưa có đơn hàng nào được lưu trong cơ sở dữ liệu.
+          </div>
+        </div>
       </div>
     </div>
   </div>

@@ -77,7 +77,10 @@
   const nameInput = document.getElementById('order-name');
   const phoneInput = document.getElementById('order-phone');
   const emailInput = document.getElementById('order-email');
-  const addressInput = document.getElementById('order-address');
+  const provinceInput = document.getElementById('order-province');
+  const districtInput = document.getElementById('order-district');
+  const wardInput = document.getElementById('order-ward');
+  const streetInput = document.getElementById('order-street');
   const noteInput = document.getElementById('order-note');
 
   const sumPkgNameEl = document.getElementById('summary-pkg-name');
@@ -278,7 +281,7 @@
 
       pollCounter++;
       if (autoCheckTextEl) {
-        autoCheckTextEl.textContent = `Hệ thống đang tự động quét biến động số dư OCB... (Lần ${pollCounter})`;
+        autoCheckTextEl.textContent = 'Hệ thống đang tự động liên kết Webhook đối soát OCB...';
       }
 
       // If user provided SePay API Token, check real bank balance
@@ -296,10 +299,11 @@
             const list = data.messages || data.transactions || [];
             const found = list.find(tx => {
               const amountMatch = Math.abs(Number(tx.amount_in) - total) < 1;
-              const contentMatch = tx.transaction_content && tx.transaction_content.includes(currentOrderId);
+              const contentMatch = tx.transaction_content && (tx.transaction_content.includes(currentOrderId) || (memo && tx.transaction_content.includes(memo.split(' ')[0])));
               return amountMatch && contentMatch;
             });
             if (found) {
+              saveCurrentOrder('PAID');
               onPaymentSuccess();
             }
           }
@@ -411,12 +415,13 @@
     launchConfetti();
 
     const { pkg, total, memo } = calculateTotal();
+    const addr = getCombinedAddress();
     const orderData = {
       orderId: currentOrderId,
       name: nameInput ? nameInput.value.trim() : 'Khách hàng',
       phone: phoneInput ? phoneInput.value.trim() : '0905957716',
       email: emailInput ? emailInput.value.trim() : '',
-      address: addressInput ? addressInput.value.trim() : '',
+      address: addr.full,
       pkgName: pkg.name,
       quantity,
       total,
@@ -425,12 +430,7 @@
       paidAt: new Date().toISOString()
     };
 
-    // Save to localStorage
-    try {
-      const savedOrders = JSON.parse(localStorage.getItem('stc_orders') || '[]');
-      savedOrders.unshift(orderData);
-      localStorage.setItem('stc_orders', JSON.stringify(savedOrders.slice(0, 10)));
-    } catch (e) {}
+    saveCurrentOrder('PAID');
 
     // Transform payment card into Order Completed View
     const paymentCard = document.querySelector('.payment-card');
@@ -518,10 +518,20 @@
   }
 
   // Validate Form
+  // Helper: Lấy địa chỉ chuẩn địa chính Việt Nam
+  function getCombinedAddress() {
+    const province = provinceInput ? provinceInput.value.trim() : '';
+    const district = districtInput ? districtInput.value.trim() : '';
+    const ward = wardInput ? wardInput.value.trim() : '';
+    const street = streetInput ? streetInput.value.trim() : '';
+    const full = [street, ward, district, province].filter(Boolean).join(', ');
+    return { province, district, ward, street, full };
+  }
+
+  // Validate Order Form
   function validateOrderForm() {
     const name = nameInput ? nameInput.value.trim() : '';
     const phone = phoneInput ? phoneInput.value.trim().replace(/\D/g, '') : '';
-    const address = addressInput ? addressInput.value.trim() : '';
     const email = emailInput ? emailInput.value.trim() : '';
 
     if (!name) {
@@ -536,32 +546,152 @@
       return false;
     }
 
-    const pkg = PACKAGES[selectedPackage];
-    if (pkg.isPhysical && !address) {
-      showToast('Vui lòng nhập Địa chỉ nhận sách để Thầy gửi ship!');
-      if (addressInput) addressInput.focus();
-      return false;
-    }
-
-    if (pkg.isDigital && email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      showToast('Vui lòng nhập định dạng Email hợp lệ!');
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showToast('Vui lòng nhập Email hợp lệ để nhận biên lai & tài liệu!');
       if (emailInput) emailInput.focus();
       return false;
     }
 
+    const pkg = PACKAGES[selectedPackage];
+    if (pkg.isPhysical) {
+      const addr = getCombinedAddress();
+      if (!addr.province) {
+        showToast('Vui lòng chọn Tỉnh / Thành phố nhận sách!');
+        if (provinceInput) provinceInput.focus();
+        return false;
+      }
+      if (!addr.district) {
+        showToast('Vui lòng nhập Quận / Huyện / Thị xã nhận sách!');
+        if (districtInput) districtInput.focus();
+        return false;
+      }
+      if (!addr.ward) {
+        showToast('Vui lòng nhập Phường / Xã / Thị trấn nhận sách!');
+        if (wardInput) wardInput.focus();
+        return false;
+      }
+      if (!addr.street) {
+        showToast('Vui lòng nhập Số nhà, tên đường hoặc thôn xóm!');
+        if (streetInput) streetInput.focus();
+        return false;
+      }
+    }
+
+    // Tự động lưu thông tin khách hàng vào cơ sở dữ liệu nội bộ
+    saveCurrentOrder('PENDING');
+
     return true;
   }
 
+  // Lưu thông tin khách hàng vào cơ sở dữ liệu admin
+  function saveCurrentOrder(status = 'PENDING') {
+    const { pkg, total, memo } = calculateTotal();
+    const addr = getCombinedAddress();
+    const orderData = {
+      id: currentOrderId,
+      createdAt: new Date().toLocaleString('vi-VN'),
+      name: nameInput ? nameInput.value.trim() : 'Khách vãng lai',
+      phone: phoneInput ? phoneInput.value.trim() : '',
+      email: emailInput ? emailInput.value.trim() : '',
+      province: addr.province,
+      district: addr.district,
+      ward: addr.ward,
+      street: addr.street,
+      fullAddress: addr.full || 'Bản đọc trực tuyến',
+      pkgId: selectedPackage,
+      pkgName: pkg.name,
+      quantity,
+      total,
+      totalFormatted: formatMoney(total),
+      memo,
+      note: noteInput ? noteInput.value.trim() : '',
+      status: status === 'PAID' ? 'Đã thanh toán' : 'Chờ thanh toán',
+      timestamp: Date.now()
+    };
+
+    try {
+      const orders = JSON.parse(localStorage.getItem('stc_admin_orders_db') || '[]');
+      const idx = orders.findIndex(o => o.id === orderData.id);
+      if (idx >= 0) {
+        orders[idx] = Object.assign(orders[idx], orderData);
+      } else {
+        orders.unshift(orderData);
+      }
+      localStorage.setItem('stc_admin_orders_db', JSON.stringify(orders.slice(0, 500)));
+    } catch (e) {}
+
+    return orderData;
+  }
+
+  // Báo không thành công khi chưa có tiền vào tài khoản
+  function showPaymentFailedNotice() {
+    showToast('Chưa ghi nhận tiền vào tài khoản OCB!');
+
+    let noticeEl = document.getElementById('payment-fail-alert');
+    if (!noticeEl) {
+      noticeEl = document.createElement('div');
+      noticeEl.id = 'payment-fail-alert';
+      noticeEl.className = 'payment-fail-box';
+      const actionsEl = document.querySelector('.payment-actions');
+      if (actionsEl) actionsEl.parentNode.insertBefore(noticeEl, actionsEl);
+    }
+    noticeEl.innerHTML = `
+      <div style="display:flex; align-items:flex-start; gap:10px;">
+        <svg class="ui-ico" style="width:20px;height:20px;color:#dc2626;flex-shrink:0;margin-top:2px;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        <div>
+          <div style="font-weight:700; color:#b91c1c; font-size:13.5px; margin-bottom:3px;">Chưa Ghi Nhận Tiền Vào Tài Khoản OCB</div>
+          <div style="font-size:12.5px; color:#4b5563; line-height:1.45;">
+            Hệ thống ngân hàng chưa nhận được giao dịch khớp với mã đơn <b>#${currentOrderId}</b>. Nếu bạn vừa chuyển tiền, vui lòng đợi 15 &ndash; 30 giây rồi bấm kiểm tra lại, hoặc bấm gửi biên lai qua Zalo Thầy Chí (${CONFIG.HOTLINE_DISPLAY || '090 595 7716'}).
+          </div>
+        </div>
+      </div>
+    `;
+    noticeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
   // Manual Check Button Trigger
-  function handleManualCheckPayment() {
+  async function handleManualCheckPayment() {
     if (!validateOrderForm()) return;
+
+    const prevAlert = document.getElementById('payment-fail-alert');
+    if (prevAlert) prevAlert.remove();
 
     if (qrCheckingOverlay) qrCheckingOverlay.classList.add('show');
 
-    // Simulate real-time checking against OCB banking API
+    // Nếu đã cấu hình SePay API Token, kiểm tra tài khoản thực tế
+    if (CONFIG.SEPAY_API_TOKEN) {
+      try {
+        const { total, memo } = calculateTotal();
+        const res = await fetch(`https://my.sepay.vn/userapi/transactions/list?account_number=${CONFIG.SEPAY_ACCOUNT_NUMBER}&limit=20`, {
+          headers: {
+            'Authorization': `Apikey ${CONFIG.SEPAY_API_TOKEN}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const list = data.messages || data.transactions || [];
+          const found = list.find(tx => {
+            const amountMatch = Math.abs(Number(tx.amount_in) - total) < 1;
+            const contentMatch = tx.transaction_content && (tx.transaction_content.includes(currentOrderId) || (memo && tx.transaction_content.includes(memo.split(' ')[0])));
+            return amountMatch && contentMatch;
+          });
+          if (found) {
+            if (qrCheckingOverlay) qrCheckingOverlay.classList.remove('show');
+            saveCurrentOrder('PAID');
+            onPaymentSuccess();
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('SePay API error:', e);
+      }
+    }
+
+    // Khi chưa có tiền vào tài khoản: Báo không thành công
     setTimeout(() => {
       if (qrCheckingOverlay) qrCheckingOverlay.classList.remove('show');
-      onPaymentSuccess();
+      showPaymentFailedNotice();
     }, 1400);
   }
 
@@ -730,6 +860,257 @@
     }, 40000);
   }
 
+  // ==========================================================================
+  // ADMIN ORDER MANAGEMENT & CSV/EXCEL EXPORT (DÀNH RIÊNG CHO THẦY HUỲNH THANH CHÍ)
+  // ==========================================================================
+  function setupAdminPortal() {
+    const openAdminBtn = document.getElementById('open-admin-btn');
+    const adminBackdrop = document.getElementById('admin-modal-backdrop');
+    const adminCloseBtn = document.getElementById('admin-close-btn');
+    const adminPasswordInput = document.getElementById('admin-password-input');
+    const adminLoginBtn = document.getElementById('admin-login-btn');
+    const adminGateBox = document.getElementById('admin-gate-box');
+    const adminDashboardBox = document.getElementById('admin-dashboard-box');
+    const adminSearchInput = document.getElementById('admin-search-input');
+    const adminExportCsvBtn = document.getElementById('admin-export-csv-btn');
+    const adminExportJsonBtn = document.getElementById('admin-export-json-btn');
+    const adminRefreshBtn = document.getElementById('admin-refresh-btn');
+    const adminLogoutBtn = document.getElementById('admin-logout-btn');
+
+    let isAdminLoggedIn = false;
+
+    function openAdminModal() {
+      if (!adminBackdrop) return;
+      adminBackdrop.classList.add('open');
+      if (isAdminLoggedIn) {
+        showDashboard();
+      } else {
+        showGate();
+      }
+    }
+
+    function closeAdminModal() {
+      if (!adminBackdrop) return;
+      adminBackdrop.classList.remove('open');
+    }
+
+    function showGate() {
+      if (adminGateBox) adminGateBox.style.display = 'grid';
+      if (adminDashboardBox) adminDashboardBox.style.display = 'none';
+      if (adminPasswordInput) {
+        adminPasswordInput.value = '';
+        setTimeout(() => adminPasswordInput.focus(), 100);
+      }
+    }
+
+    function showDashboard() {
+      if (adminGateBox) adminGateBox.style.display = 'none';
+      if (adminDashboardBox) adminDashboardBox.style.display = 'block';
+      renderAdminOrders();
+    }
+
+    function handleLogin() {
+      const pwd = adminPasswordInput ? adminPasswordInput.value.trim() : '';
+      const correctPwd = CONFIG.ADMIN_PASSWORD || 'thanhchi113';
+      if (pwd === correctPwd) {
+        isAdminLoggedIn = true;
+        showToast('Đăng nhập Quản trị viên thành công!');
+        showDashboard();
+      } else {
+        showToast('Mật khẩu quản trị không đúng!');
+        if (adminPasswordInput) adminPasswordInput.select();
+      }
+    }
+
+    function handleLogout() {
+      isAdminLoggedIn = false;
+      showGate();
+      showToast('Đã đăng xuất quyền Admin.');
+    }
+
+    function getOrders() {
+      try {
+        return JSON.parse(localStorage.getItem('stc_admin_orders_db') || '[]');
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function renderAdminOrders(searchTerm = '') {
+      const orders = getOrders();
+      const tbody = document.getElementById('admin-table-body');
+      const emptyNotice = document.getElementById('admin-empty-notice');
+      const totalOrdersEl = document.getElementById('admin-stat-total-orders');
+      const paidOrdersEl = document.getElementById('admin-stat-paid-orders');
+      const revenueEl = document.getElementById('admin-stat-revenue');
+
+      let paidCount = 0;
+      let totalRevenue = 0;
+
+      orders.forEach(o => {
+        if (o.status === 'Đã thanh toán') {
+          paidCount++;
+          totalRevenue += Number(o.total || 0);
+        }
+      });
+
+      if (totalOrdersEl) totalOrdersEl.textContent = orders.length;
+      if (paidOrdersEl) paidOrdersEl.textContent = paidCount;
+      if (revenueEl) revenueEl.textContent = formatMoney(totalRevenue);
+
+      if (!tbody) return;
+
+      const q = searchTerm.toLowerCase().trim();
+      const filtered = orders.filter(o => {
+        if (!q) return true;
+        return (o.id && o.id.toLowerCase().includes(q)) ||
+               (o.name && o.name.toLowerCase().includes(q)) ||
+               (o.phone && o.phone.includes(q)) ||
+               (o.email && o.email.toLowerCase().includes(q)) ||
+               (o.province && o.province.toLowerCase().includes(q));
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '';
+        if (emptyNotice) emptyNotice.style.display = 'block';
+        return;
+      }
+
+      if (emptyNotice) emptyNotice.style.display = 'none';
+      tbody.innerHTML = filtered.map(o => `
+        <tr>
+          <td><b style="color:var(--ink); font-family:monospace;">#${o.id}</b></td>
+          <td style="color:#666; font-size:12px;">${o.createdAt || ''}</td>
+          <td><b>${o.name || '---'}</b></td>
+          <td><a href="tel:${o.phone}" style="color:var(--blue); font-weight:600;">${o.phone || '---'}</a></td>
+          <td style="font-size:12px;">${o.email || '---'}</td>
+          <td style="max-width:220px; white-space:normal; font-size:12px;" title="${o.fullAddress || ''}">${o.fullAddress || '---'}</td>
+          <td style="font-size:12px; font-weight:600;">${o.pkgName || ''}</td>
+          <td><b style="color:var(--ink);">${formatMoney(o.total || 0)}</b></td>
+          <td><code style="background:#f1f5f9; padding:2px 5px; border-radius:3px;">${o.memo || ''}</code></td>
+          <td>
+            <span class="${o.status === 'Đã thanh toán' ? 'badge-status-paid' : 'badge-status-pending'}">
+              ${o.status || 'Chờ thanh toán'}
+            </span>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function exportToCsv() {
+      const orders = getOrders();
+      if (orders.length === 0) {
+        showToast('Chưa có đơn hàng nào để xuất file!');
+        return;
+      }
+
+      const headers = [
+        'Mã Đơn Hàng',
+        'Thời Gian Đặt',
+        'Họ Và Tên',
+        'Số Điện Thoại',
+        'Email',
+        'Tỉnh / Thành Phố',
+        'Quận / Huyện',
+        'Phường / Xã',
+        'Số Nhà Đường',
+        'Địa Chỉ Đầy Đủ',
+        'Gói Sản Phẩm',
+        'Số Lượng',
+        'Số Tiền (VND)',
+        'Nội Dung Chuyển Khoản',
+        'Ghi Chú',
+        'Trạng Thái'
+      ];
+
+      function escapeCsv(val) {
+        if (val === null || val === undefined) return '""';
+        const str = String(val).replace(/"/g, '""');
+        return `"${str}"`;
+      }
+
+      const rows = orders.map(o => [
+        escapeCsv(o.id),
+        escapeCsv(o.createdAt),
+        escapeCsv(o.name),
+        escapeCsv(`'${o.phone}`),
+        escapeCsv(o.email),
+        escapeCsv(o.province),
+        escapeCsv(o.district),
+        escapeCsv(o.ward),
+        escapeCsv(o.street),
+        escapeCsv(o.fullAddress),
+        escapeCsv(o.pkgName),
+        escapeCsv(o.quantity),
+        escapeCsv(o.total),
+        escapeCsv(o.memo),
+        escapeCsv(o.note),
+        escapeCsv(o.status)
+      ].join(','));
+
+      const csvContent = '\uFEFF' + headers.join(',') + '\r\n' + rows.join('\r\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const dateStr = new Date().toISOString().slice(0, 10);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Danh-Sach-Khach-Hang-Thay-Chi-${dateStr}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      showToast('Đã tải xuống file Excel (.csv)!');
+    }
+
+    function exportToJson() {
+      const orders = getOrders();
+      const jsonContent = JSON.stringify(orders, null, 2);
+      const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Backup-Don-Hang-${new Date().toISOString().slice(0, 10)}.json`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      showToast('Đã tải xuống file sao lưu JSON!');
+    }
+
+    if (openAdminBtn) openAdminBtn.addEventListener('click', (e) => { e.preventDefault(); openAdminModal(); });
+    if (adminCloseBtn) adminCloseBtn.addEventListener('click', closeAdminModal);
+    if (adminLoginBtn) adminLoginBtn.addEventListener('click', handleLogin);
+    if (adminPasswordInput) {
+      adminPasswordInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleLogin();
+      });
+    }
+    if (adminLogoutBtn) adminLogoutBtn.addEventListener('click', handleLogout);
+    if (adminExportCsvBtn) adminExportCsvBtn.addEventListener('click', exportToCsv);
+    if (adminExportJsonBtn) adminExportJsonBtn.addEventListener('click', exportToJson);
+    if (adminRefreshBtn) adminRefreshBtn.addEventListener('click', () => {
+      renderAdminOrders(adminSearchInput ? adminSearchInput.value : '');
+      showToast('Đã làm mới danh sách.');
+    });
+    if (adminSearchInput) {
+      adminSearchInput.addEventListener('input', (e) => renderAdminOrders(e.target.value));
+    }
+
+    // Secret shortcut: Ctrl + Shift + A
+    window.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+        e.preventDefault();
+        openAdminModal();
+      }
+    });
+
+    if (adminBackdrop) {
+      adminBackdrop.addEventListener('click', (e) => {
+        if (e.target === adminBackdrop) closeAdminModal();
+      });
+    }
+  }
+
   // Init
   function init() {
     setupEventListeners();
@@ -737,6 +1118,7 @@
     startCountdownTimer();
     startAutoCheckPolling();
     setupSocialProof();
+    setupAdminPortal();
   }
 
   if (document.readyState === 'loading') {

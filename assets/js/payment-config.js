@@ -19,11 +19,17 @@ window.PAYMENT_CONFIG = {
   POLL_INTERVAL_MS: 3000,
 
   /**
-   * TÍCH HỢP TỰ ĐỘNG BÁO BIẾN ĐỘNG SỐ DƯ (Tùy chọn):
-   * Nếu Thầy sử dụng dịch vụ SePay (miễn phí kết nối OCB tại https://sepay.vn):
-   * Chỉ cần điền API Token của SePay vào biến bên dưới.
-   * Hệ thống sẽ tự động gọi API SePay kiểm tra tiền vào tài khoản OCB theo thời gian thực!
+   * TÍCH HỢP ĐỐI SOÁT TỰ ĐỘNG 100% QUA WEBHOOK SEPAY (BÊN THỨ 3):
+   * LƯU Ý QUAN TRỌNG:
+   * Nếu Thầy muốn hệ thống check tự động 100% biến động số dư tài khoản OCB:
+   * 1. Đăng ký tài khoản miễn phí tại https://my.sepay.vn và liên kết tài khoản OCB 0169100000679007.
+   * 2. Lấy API Token (API Key) và dán trực tiếp vào biến SEPAY_API_TOKEN bên dưới.
+   * 3. Khi chưa điền token hoặc tài khoản chưa nhận được tiền, hệ thống sẽ chạy chế độ
+   *    đối soát thông minh: Khi chưa có tiền vào tài khoản thì bấm nút xác thực giao dịch sẽ báo KHÔNG THÀNH CÔNG.
    */
-  SEPAY_API_TOKEN: '', // Ví dụ: 'SEPAY_API_KEY_CUA_THAY'
-  SEPAY_ACCOUNT_NUMBER: '0169100000679007'
+  SEPAY_API_TOKEN: '', // Dán SePay API Key của Thầy vào đây (Ví dụ: 'ABC123XYZ456...')
+  SEPAY_ACCOUNT_NUMBER: '0169100000679007',
+
+  // Mật khẩu khu vực Quản Trị Khách Hàng (Admin) - Dành riêng cho Thầy Chí
+  ADMIN_PASSWORD: 'thanhchi113'
 };
