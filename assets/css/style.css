@@ -1845,3 +1845,289 @@ footer.site-footer {
     padding: 22px 18px;
   }
 }
+
+/* ==========================================================================
+   13. 5-MINUTE COUNTDOWN & AUTO-CHECK TRANSACTION STYLES
+   ========================================================================== */
+.qr-timer-box {
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.timer-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.timer-status-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+}
+
+.timer-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 0 rgba(46, 125, 79, 0.7);
+  animation: pulseDot 1.5s infinite;
+  flex-shrink: 0;
+}
+
+.timer-dot.warning {
+  background: #e53935;
+  box-shadow: 0 0 0 0 rgba(229, 57, 53, 0.7);
+}
+
+.timer-dot.expired {
+  background: #999;
+  animation: none;
+}
+
+@keyframes pulseDot {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(46, 125, 79, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(46, 125, 79, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(46, 125, 79, 0); }
+}
+
+.timer-countdown {
+  font-family: var(--serif);
+  font-weight: 800;
+  font-size: 15.5px;
+  color: var(--ink);
+  letter-spacing: 0.5px;
+  background: #fff;
+  padding: 2px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+}
+
+.timer-countdown.warning {
+  color: #e53935;
+  background: #fee2e2;
+  border-color: #fca5a5;
+  animation: pulseWarning 1s infinite alternate;
+}
+
+@keyframes pulseWarning {
+  from { transform: scale(1); }
+  to { transform: scale(1.05); }
+}
+
+.timer-progress-bar {
+  height: 5px;
+  background: var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.timer-progress-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, var(--green), var(--ink));
+  border-radius: 999px;
+  transition: width 1s linear;
+}
+
+.timer-progress-fill.warning {
+  background: #e53935;
+}
+
+/* Expired & Checking Overlays on QR */
+.qr-expired-overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  z-index: 10;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  text-align: center;
+}
+
+.qr-expired-overlay.show {
+  display: flex;
+}
+
+.expired-icon {
+  font-size: 32px;
+  margin-bottom: 6px;
+}
+
+.expired-title {
+  font-weight: 700;
+  font-size: 14.5px;
+  color: #e53935;
+  margin-bottom: 4px;
+}
+
+.expired-desc {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.qr-checking-overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(3px);
+  z-index: 11;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.qr-checking-overlay.show {
+  display: flex;
+}
+
+.checking-spinner {
+  width: 38px;
+  height: 38px;
+  border: 3.5px solid var(--paper-2);
+  border-top-color: var(--ink);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.checking-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-deep);
+}
+
+/* Auto-check Live Radar Badge */
+.auto-check-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fdfaf6;
+  border: 1px dashed var(--line);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 14px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.radar-ping {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+}
+
+.radar-ping::before, .radar-ping::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--blue);
+}
+
+.radar-ping::after {
+  animation: ping 1.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+  opacity: 0.75;
+}
+
+@keyframes ping {
+  75%, 100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+/* Success Order State Card */
+.order-success-screen {
+  background: #f0fdf4;
+  border: 2px solid #86efac;
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  text-align: center;
+  margin-bottom: 20px;
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.success-check-badge {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--green);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 12px;
+  box-shadow: 0 10px 20px rgba(46, 125, 79, 0.35);
+}
+
+.success-title {
+  font: 800 20px/1.2 var(--serif);
+  color: #166534;
+  margin: 0 0 6px;
+}
+
+.success-sub {
+  font-size: 13.5px;
+  color: #15803d;
+  margin: 0 0 16px;
+}
+
+.download-vip-btn {
+  background: linear-gradient(135deg, var(--ink), var(--ink-soft));
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 12px 24px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 8px 20px rgba(101, 15, 18, 0.4);
+  margin-bottom: 12px;
+  transition: all 0.2s;
+}
+
+.download-vip-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(101, 15, 18, 0.5);
+  color: #fff;
+}
+
+/* Confetti Canvas */
+#confetti-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 3000;
+}

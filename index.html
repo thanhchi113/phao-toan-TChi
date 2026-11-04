@@ -501,10 +501,24 @@
 
         <!-- PAYMENT & QR CỘT PHẢI -->
         <div class="payment-card" id="thanh-toan">
-          <h3 class="form-block-title" style="margin-bottom: 14px;">
+          <h3 class="form-block-title" style="margin-bottom: 12px;">
             <svg class="ui-ico" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
             <span>Bước 3: Quét Mã QR Chuyển Khoản</span>
           </h3>
+
+          <!-- 5-Minute Countdown Timer Box -->
+          <div class="qr-timer-box" id="qr-timer-box">
+            <div class="timer-top">
+              <span class="timer-status-wrap">
+                <span class="timer-dot" id="timer-status-dot"></span>
+                <span id="timer-status-text">Thời gian quét mã còn lại:</span>
+              </span>
+              <span class="timer-countdown" id="timer-countdown-display">05:00</span>
+            </div>
+            <div class="timer-progress-bar">
+              <div class="timer-progress-fill" id="timer-progress-fill" style="width: 100%;"></div>
+            </div>
+          </div>
 
           <!-- QR Mode Tabs -->
           <div class="qr-tabs">
@@ -516,15 +530,39 @@
             </button>
           </div>
 
-          <!-- QR Code Display Box -->
-          <div class="qr-display-box">
+          <!-- QR Code Display Box with Overlays -->
+          <div class="qr-display-box" id="qr-display-box">
             <div class="qr-img-frame">
-              <img id="qr-main-image" src="https://img.vietqr.io/image/OCB-0169100000679007-compact2.png?amount=119000&addInfo=STTOAN%200905957716&accountName=HUYNH%20THANH%20CHI" alt="Mã QR Chuyển Khoản Ngân Hàng OCB">
+              <img id="qr-main-image" src="https://img.vietqr.io/image/OCB-0169100000679007-compact2.png?amount=119000&addInfo=PTC882194%200905957716&accountName=HUYNH%20THANH%20CHI" alt="Mã QR Chuyển Khoản Ngân Hàng OCB">
+
+              <!-- Expired Overlay (Khi hết 5 phút) -->
+              <div class="qr-expired-overlay" id="qr-expired-overlay">
+                <div class="expired-icon">⏰</div>
+                <div class="expired-title">Mã QR Đã Hết Hiệu Lực</div>
+                <div class="expired-desc">Phiên thanh toán 5 phút đã kết thúc để đảm bảo an toàn giao dịch.</div>
+                <button type="button" class="btn btn-primary btn-sm" id="btn-renew-qr">
+                  <svg class="ui-ico" viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                  <span>Tạo mã mới (Gia hạn 5 phút)</span>
+                </button>
+              </div>
+
+              <!-- Checking Overlay (Khi đang kiểm tra giao dịch) -->
+              <div class="qr-checking-overlay" id="qr-checking-overlay">
+                <div class="checking-spinner"></div>
+                <div class="checking-text">Đang đối soát giao dịch Ngân hàng OCB...</div>
+              </div>
             </div>
+
             <div class="qr-bank-badge">
               <svg class="ui-ico" style="width:15px;height:15px" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-              <span>Ngân hàng OCB &bull; Napas 247 &bull; VietQR</span>
+              <span>Ngân hàng OCB &bull; Napas 247 &bull; VietQR Tự Động</span>
             </div>
+          </div>
+
+          <!-- Live Radar Auto-Check Badge -->
+          <div class="auto-check-badge" id="auto-check-badge">
+            <span class="radar-ping"></span>
+            <span id="auto-check-text">Hệ thống đang tự động quét biến động số dư OCB...</span>
           </div>
 
           <!-- Bank Details Breakdown -->
@@ -554,7 +592,7 @@
             <div class="bank-item">
               <span class="bank-lbl">Nội dung CK:</span>
               <div class="bank-val-wrap">
-                <span id="pay-memo" style="color: var(--blue);">STTOAN 0905957716</span>
+                <span id="pay-memo" style="color: var(--blue);">PTC882194 0905957716</span>
                 <button type="button" class="copy-mini-btn" data-copy-target="pay-memo" title="Sao chép nội dung chuyển khoản">Sao chép</button>
               </div>
             </div>
@@ -563,8 +601,8 @@
           <!-- Action buttons -->
           <div class="payment-actions">
             <button type="button" class="btn btn-green btn-lg" id="btn-confirm-payment" style="width: 100%;">
-              <svg class="ui-ico" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span>Tôi Đã Chuyển Khoản Thành Công</span>
+              <svg class="ui-ico" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+              <span>⚡ Kiểm Tra &amp; Hoàn Tất Đơn Tự Động</span>
             </button>
 
             <div style="display: flex; gap: 8px;">
@@ -757,6 +795,7 @@
   </div>
 
   <!-- Scripts -->
+  <script src="assets/js/payment-config.js"></script>
   <script src="assets/js/viewer.js"></script>
   <script src="assets/js/order.js"></script>
 

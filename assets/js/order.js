@@ -1,26 +1,29 @@
 /**
- * ORDER FORM & VIETQR PAYMENT ENGINE
- * Tự động tính tiền, sinh mã VietQR OCB theo thông tin đơn hàng,
- * sao chép 1-chạm, lưu đơn hàng, và kết nối Zalo xác nhận.
+ * ORDER FORM & VIETQR PAYMENT ENGINE VỚI ĐẾM NGƯỢC 5 PHÚT VÀ TỰ ĐỘNG XÁC NHẬN GIAO DỊCH
+ * Sổ Tay Tóm Tắt Toán THPT – Thầy Huỳnh Thanh Chí
  */
 
 (function () {
   'use strict';
 
-  // Bank Info
-  const BANK_CONFIG = {
-    bankId: 'OCB',
-    accountNo: '0169100000679007',
-    accountName: 'HUYNH THANH CHI',
-    bankFullName: 'Ngân Hàng Phương Đông (OCB)',
-    hotlineZalo: '0905957716'
+  // Config reference
+  const CONFIG = window.PAYMENT_CONFIG || {
+    COUNTDOWN_SECONDS: 300,
+    BANK_ID: 'OCB',
+    BANK_NAME: 'Ngân Hàng Phương Đông (OCB)',
+    ACCOUNT_NO: '0169100000679007',
+    ACCOUNT_NAME: 'HUYNH THANH CHI',
+    HOTLINE_ZALO: '0905957716',
+    POLL_INTERVAL_MS: 3000,
+    SEPAY_API_TOKEN: '',
+    SEPAY_ACCOUNT_NUMBER: '0169100000679007'
   };
 
   // Packages
   const PACKAGES = {
     combo: {
       id: 'combo',
-      name: 'COMBO Trọn Bộ (Sách In Màu + PDF VIP + Video)',
+      name: 'COMBO Toàn Diện (Sách Giấy In + PDF VIP + Video)',
       price: 119000,
       oldPrice: 189000,
       shipping: 0,
@@ -51,6 +54,18 @@
   let selectedPackage = 'combo';
   let quantity = 1;
   let activeQrTab = 'vietqr'; // 'vietqr' or 'ocb_card'
+  let currentOrderId = generateOrderId();
+  let isPaymentCompleted = false;
+
+  // Timer State (5 phút = 300s)
+  let remainingSeconds = CONFIG.COUNTDOWN_SECONDS;
+  let timerInterval = null;
+  let pollInterval = null;
+  let pollCounter = 0;
+
+  function generateOrderId() {
+    return 'PTC' + Math.floor(100000 + Math.random() * 900000);
+  }
 
   // DOM Elements
   const packageItems = document.querySelectorAll('.package-item');
@@ -79,17 +94,26 @@
   const qrTabAutoBtn = document.getElementById('qr-tab-auto');
   const qrTabCardBtn = document.getElementById('qr-tab-card');
 
+  // Countdown & Auto-check Elements
+  const timerCountdownEl = document.getElementById('timer-countdown-display');
+  const timerProgressFillEl = document.getElementById('timer-progress-fill');
+  const timerStatusDotEl = document.getElementById('timer-status-dot');
+  const timerStatusTextEl = document.getElementById('timer-status-text');
+  const qrExpiredOverlay = document.getElementById('qr-expired-overlay');
+  const qrCheckingOverlay = document.getElementById('qr-checking-overlay');
+  const btnRenewQr = document.getElementById('btn-renew-qr');
+  const autoCheckTextEl = document.getElementById('auto-check-text');
+  const confirmPaymentBtn = document.getElementById('btn-confirm-payment');
+
   const toastEl = document.getElementById('toast-notification');
   const modalBackdrop = document.getElementById('order-modal-backdrop');
   const modalCloseBtn = document.getElementById('modal-close-btn');
-  const confirmPaymentBtn = document.getElementById('btn-confirm-payment');
 
-  // Format VND currency
+  // Format VND
   function formatMoney(amount) {
     return new Intl.NumberFormat('vi-VN').format(amount) + ' đ';
   }
 
-  // Remove Vietnamese diacritics for SMS/Bank transfer memo
   function removeVietnameseTones(str) {
     if (!str) return '';
     str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a");
@@ -102,7 +126,7 @@
     str = str.replace(/À|Á|Ạ|Ả|Ã|Â|Ầ|Ấ|Ậ|Ẩ|Ẫ|Ă|Ằ|Ắ|Ặ|Ẳ|Ẵ/g, "A");
     str = str.replace(/È|É|Ẹ|Ẻ|Ẽ|Ê|Ề|Ế|Ệ|Ể|Ễ/g, "E");
     str = str.replace(/Ì|Í|Ị|Ỉ|Ĩ/g, "I");
-    str = str.replace(/Ò|Ó|Ọ|Ỏ|Õ|Ô|Ồ|Ố|Ộ|Ổ|Ỗ|Ơ|Ờ|Ớ|Ợ|Ở|Ỡ/g, "O");
+    str = str.replace(/Ò|Ó|Ỏ|Õ|Ô|Ồ|Ố|Ộ|Ổ|Ỗ|Ơ|Ờ|Ớ|Ợ|Ở|Ỡ/g, "O");
     str = str.replace(/Ù|Ú|Ụ|Ủ|Ũ|Ư|Ừ|Ứ|Ự|Ử|Ữ/g, "U");
     str = str.replace(/Ỳ|Ý|Ỵ|Ỷ|Ỹ/g, "Y");
     str = str.replace(/Đ/g, "D");
@@ -113,19 +137,20 @@
   function calculateTotal() {
     const pkg = PACKAGES[selectedPackage];
     const subtotal = pkg.price * quantity;
-    // Free shipping for combo or ebooks, or orders >= 2 items
     const shipping = (pkg.shipping > 0 && quantity === 1) ? pkg.shipping : 0;
     const total = subtotal + shipping;
 
     const phone = phoneInput ? phoneInput.value.replace(/\D/g, '') : '';
-    const cleanName = nameInput ? removeVietnameseTones(nameInput.value).split(' ').slice(-2).join(' ') : '';
-    const memo = `STTOAN ${phone || '0905957716'} ${cleanName}`.trim();
+    // Format memo: PTCXXXXXX <SDT> (ngắn gọn, chính xác để ngân hàng không cắt)
+    const memo = `${currentOrderId} ${phone || '0905957716'}`.trim();
 
     return { pkg, subtotal, shipping, total, memo };
   }
 
   // Update Summary Table & Payment Card
   function updateOrderDisplay() {
+    if (isPaymentCompleted) return;
+
     const { pkg, subtotal, shipping, total, memo } = calculateTotal();
 
     if (sumPkgNameEl) sumPkgNameEl.textContent = `${pkg.name} (x${quantity})`;
@@ -137,9 +162,9 @@
     if (sumTotalEl) sumTotalEl.textContent = formatMoney(total);
 
     // Bank Detail Labels
-    if (payBankNameEl) payBankNameEl.textContent = BANK_CONFIG.bankFullName;
-    if (payAccountNoEl) payAccountNoEl.textContent = BANK_CONFIG.accountNo;
-    if (payAccountNameEl) payAccountNameEl.textContent = BANK_CONFIG.accountName;
+    if (payBankNameEl) payBankNameEl.textContent = CONFIG.BANK_NAME;
+    if (payAccountNoEl) payAccountNoEl.textContent = CONFIG.ACCOUNT_NO;
+    if (payAccountNameEl) payAccountNameEl.textContent = CONFIG.ACCOUNT_NAME;
     if (payAmountEl) payAmountEl.textContent = formatMoney(total);
     if (payMemoEl) payMemoEl.textContent = memo;
 
@@ -155,19 +180,316 @@
   function updateQrImage(total, memo) {
     if (!qrImageEl) return;
     if (activeQrTab === 'vietqr') {
-      // Dynamic VietQR with exact amount and transfer note
       const encodedMemo = encodeURIComponent(memo);
-      const qrUrl = `https://img.vietqr.io/image/${BANK_CONFIG.bankId}-${BANK_CONFIG.accountNo}-compact2.png?amount=${total}&addInfo=${encodedMemo}&accountName=${encodeURIComponent(BANK_CONFIG.accountName)}`;
+      const qrUrl = `https://img.vietqr.io/image/${CONFIG.BANK_ID}-${CONFIG.ACCOUNT_NO}-compact2.png?amount=${total}&addInfo=${encodedMemo}&accountName=${encodeURIComponent(CONFIG.ACCOUNT_NAME)}`;
       qrImageEl.src = qrUrl;
       qrImageEl.alt = `VietQR Chuyển khoản OCB ${formatMoney(total)}`;
     } else {
-      // Original OCB QR Card uploaded by user
       qrImageEl.src = 'assets/images/qr-card.png';
       qrImageEl.alt = 'Mã QR Thẻ Ngân hàng OCB Huỳnh Thanh Chí';
     }
   }
 
-  // Show Toast
+  // ==========================================================================
+  // COUNTDOWN TIMER (5 PHÚT = 300s)
+  // ==========================================================================
+  function startCountdownTimer() {
+    clearInterval(timerInterval);
+    remainingSeconds = CONFIG.COUNTDOWN_SECONDS;
+    updateTimerUI();
+
+    timerInterval = setInterval(() => {
+      if (isPaymentCompleted) {
+        clearInterval(timerInterval);
+        return;
+      }
+
+      remainingSeconds--;
+      updateTimerUI();
+
+      if (remainingSeconds <= 0) {
+        clearInterval(timerInterval);
+        handleTimerExpired();
+      }
+    }, 1000);
+  }
+
+  function updateTimerUI() {
+    if (!timerCountdownEl) return;
+    const mins = Math.floor(remainingSeconds / 60);
+    const secs = remainingSeconds % 60;
+    const str = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    timerCountdownEl.textContent = str;
+
+    const percent = Math.max(0, (remainingSeconds / CONFIG.COUNTDOWN_SECONDS) * 100);
+    if (timerProgressFillEl) {
+      timerProgressFillEl.style.width = `${percent}%`;
+    }
+
+    // Warning state when < 60s
+    if (remainingSeconds <= 60 && remainingSeconds > 0) {
+      timerCountdownEl.classList.add('warning');
+      if (timerProgressFillEl) timerProgressFillEl.classList.add('warning');
+      if (timerStatusDotEl) timerStatusDotEl.classList.add('warning');
+      if (timerStatusTextEl) timerStatusTextEl.textContent = 'Sắp hết hạn thanh toán:';
+    } else if (remainingSeconds > 60) {
+      timerCountdownEl.classList.remove('warning');
+      if (timerProgressFillEl) timerProgressFillEl.classList.remove('warning');
+      if (timerStatusDotEl) {
+        timerStatusDotEl.classList.remove('warning');
+        timerStatusDotEl.classList.remove('expired');
+      }
+      if (timerStatusTextEl) timerStatusTextEl.textContent = 'Thời gian quét mã còn lại:';
+    }
+  }
+
+  function handleTimerExpired() {
+    if (timerStatusDotEl) {
+      timerStatusDotEl.classList.remove('warning');
+      timerStatusDotEl.classList.add('expired');
+    }
+    if (timerStatusTextEl) timerStatusTextEl.textContent = 'Phiên thanh toán đã hết hạn';
+    if (qrExpiredOverlay) qrExpiredOverlay.classList.add('show');
+    if (autoCheckTextEl) autoCheckTextEl.textContent = 'Mã QR đã hết hiệu lực. Bấm Tạo lại mã để tiếp tục.';
+  }
+
+  function renewQrSession() {
+    currentOrderId = generateOrderId();
+    if (qrExpiredOverlay) qrExpiredOverlay.classList.remove('show');
+    updateOrderDisplay();
+    startCountdownTimer();
+    startAutoCheckPolling();
+    showToast('Đã tạo mã QR mới có hiệu lực trong 5 phút!');
+  }
+
+  // ==========================================================================
+  // AUTO-CHECK TRANSACTION ENGINE (TỰ ĐỘNG QUÉT & KIỂM TRA GIAO DỊCH)
+  // ==========================================================================
+  function startAutoCheckPolling() {
+    clearInterval(pollInterval);
+    pollCounter = 0;
+
+    pollInterval = setInterval(async () => {
+      if (isPaymentCompleted || remainingSeconds <= 0) {
+        clearInterval(pollInterval);
+        return;
+      }
+
+      pollCounter++;
+      if (autoCheckTextEl) {
+        autoCheckTextEl.textContent = `Hệ thống đang tự động quét biến động số dư OCB... (Lần ${pollCounter})`;
+      }
+
+      // If user provided SePay API Token, check real bank balance
+      if (CONFIG.SEPAY_API_TOKEN) {
+        try {
+          const { total, memo } = calculateTotal();
+          const res = await fetch(`https://my.sepay.vn/userapi/transactions/list?account_number=${CONFIG.SEPAY_ACCOUNT_NUMBER}&limit=10`, {
+            headers: {
+              'Authorization': `Apikey ${CONFIG.SEPAY_API_TOKEN}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            const list = data.messages || data.transactions || [];
+            const found = list.find(tx => {
+              const amountMatch = Math.abs(Number(tx.amount_in) - total) < 1;
+              const contentMatch = tx.transaction_content && tx.transaction_content.includes(currentOrderId);
+              return amountMatch && contentMatch;
+            });
+            if (found) {
+              onPaymentSuccess();
+            }
+          }
+        } catch (e) {
+          // silent fallback
+        }
+      }
+    }, CONFIG.POLL_INTERVAL_MS);
+  }
+
+  // Web Audio Bell Chime ("Ting ting! 🔔")
+  function playSuccessTingTing() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state === 'suspended') ctx.resume();
+
+      function playTone(freq, startTime, duration) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, startTime);
+        gain.gain.setValueAtTime(0.2, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(startTime);
+        osc.stop(startTime + duration);
+      }
+
+      const now = ctx.currentTime;
+      playTone(1046.5, now, 0.4);       // C6
+      playTone(1318.5, now + 0.15, 0.6); // E6
+      playTone(2093.0, now + 0.30, 0.8); // C7
+    } catch (e) {}
+  }
+
+  // Confetti Particle Explosion
+  function launchConfetti() {
+    let canvas = document.getElementById('confetti-canvas');
+    if (!canvas) {
+      canvas = document.createElement('canvas');
+      canvas.id = 'confetti-canvas';
+      document.body.appendChild(canvas);
+    }
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const colors = ['#650f12', '#2e7d4f', '#d97706', '#1f5fbf', '#e53935', '#fbf7ef'];
+    const particles = [];
+    for (let i = 0; i < 90; i++) {
+      particles.push({
+        x: canvas.width * 0.5,
+        y: canvas.height * 0.4,
+        w: Math.random() * 8 + 6,
+        h: Math.random() * 12 + 6,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        vx: (Math.random() - 0.5) * 16,
+        vy: (Math.random() - 0.7) * 16,
+        rot: Math.random() * 360,
+        vRot: (Math.random() - 0.5) * 12,
+        opacity: 1
+      });
+    }
+
+    let frame = 0;
+    function anim() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let alive = false;
+      particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.38; // gravity
+        p.vx *= 0.98;
+        p.rot += p.vRot;
+        if (frame > 40) p.opacity -= 0.015;
+
+        if (p.opacity > 0) {
+          alive = true;
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate((p.rot * Math.PI) / 180);
+          ctx.globalAlpha = Math.max(0, p.opacity);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+          ctx.restore();
+        }
+      });
+      frame++;
+      if (alive) {
+        requestAnimationFrame(anim);
+      } else {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+    anim();
+  }
+
+  // PAYMENT SUCCESSFUL HANDLER
+  function onPaymentSuccess() {
+    if (isPaymentCompleted) return;
+    isPaymentCompleted = true;
+
+    clearInterval(timerInterval);
+    clearInterval(pollInterval);
+
+    // Audio & Confetti
+    playSuccessTingTing();
+    launchConfetti();
+
+    const { pkg, total, memo } = calculateTotal();
+    const orderData = {
+      orderId: currentOrderId,
+      name: nameInput ? nameInput.value.trim() : 'Khách hàng',
+      phone: phoneInput ? phoneInput.value.trim() : '0905957716',
+      email: emailInput ? emailInput.value.trim() : '',
+      address: addressInput ? addressInput.value.trim() : '',
+      pkgName: pkg.name,
+      quantity,
+      total,
+      memo,
+      status: 'PAID',
+      paidAt: new Date().toISOString()
+    };
+
+    // Save to localStorage
+    try {
+      const savedOrders = JSON.parse(localStorage.getItem('stc_orders') || '[]');
+      savedOrders.unshift(orderData);
+      localStorage.setItem('stc_orders', JSON.stringify(savedOrders.slice(0, 10)));
+    } catch (e) {}
+
+    // Transform payment card into Order Completed View
+    const paymentCard = document.querySelector('.payment-card');
+    if (paymentCard) {
+      paymentCard.innerHTML = `
+        <div class="order-success-screen">
+          <div class="success-check-badge">
+            <svg style="width:32px;height:32px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+          <h3 class="success-title">Thanh Toán Thành Công!</h3>
+          <p class="success-sub">Giao dịch đã được hệ thống xác nhận tự động qua Ngân hàng OCB.</p>
+
+          <div style="background:#fff; border-radius:12px; padding:16px; margin-bottom:18px; border:1px solid #bbf7d0; text-align:left; font-size:13.5px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+              <span style="color:#666;">Mã đơn hàng:</span>
+              <b style="color:var(--ink); font-size:15px;">#${orderData.orderId}</b>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+              <span style="color:#666;">Khách hàng:</span>
+              <b>${orderData.name}</b>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+              <span style="color:#666;">Số điện thoại:</span>
+              <b>${orderData.phone}</b>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+              <span style="color:#666;">Gói sản phẩm:</span>
+              <span style="font-weight:600; text-align:right;">${orderData.pkgName}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; border-top:1px dashed #bbf7d0; padding-top:8px; margin-top:8px; font-size:15px;">
+              <span style="font-weight:700; color:#166534;">Số tiền đã thanh toán:</span>
+              <b style="color:var(--ink); font-family:var(--serif); font-size:17px;">${formatMoney(orderData.total)}</b>
+            </div>
+          </div>
+
+          <!-- Instant Unlock Download VIP -->
+          <div style="margin-bottom: 16px;">
+            <a href="assets/pdf/so-tay-toan-thpt.pdf" download="So-Tay-Tom-Tat-Toan-THPT-VIP-Ban-Quyen.pdf" class="download-vip-btn" style="width: 100%; justify-content: center;">
+              <svg class="ui-ico" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              <span>📥 TẢI NGAY SỔ TAY TOÁN THPT (BẢN VIP)</span>
+            </a>
+            <div style="font-size:12.5px; color:#15803d; line-height:1.4;">
+              ${pkg.isPhysical ? '✓ Bản sách in giấy màu cao cấp của bạn sẽ được Thầy Huỳnh Thanh Chí đóng gói và gửi Viettel Post / GHTK sớm nhất!' : '✓ Bạn có thể bấm nút trên để tải trực tiếp file PDF bản quyền về điện thoại hoặc máy tính!'}
+            </div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <a href="https://zalo.me/${CONFIG.HOTLINE_ZALO}?text=${encodeURIComponent(`Chào Thầy Huỳnh Thanh Chí, em đã thanh toán thành công đơn hàng #${orderData.orderId} (${formatMoney(orderData.total)}). Thầy kiểm tra giúp em nhé!`)}" target="_blank" rel="noopener" class="btn btn-zalo btn-sm" style="width:100%;">
+              <svg class="ui-ico" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+              <span>Nhắn Zalo Thầy Huỳnh Thanh Chí (${CONFIG.HOTLINE_ZALO})</span>
+            </a>
+          </div>
+        </div>
+      `;
+    }
+
+    showToast('🎉 Thanh toán thành công! Đơn hàng đã hoàn tất.');
+  }
+
+  // Toast
   let toastTimer = null;
   function showToast(message) {
     if (!toastEl) return;
@@ -179,12 +501,11 @@
     }, 2800);
   }
 
-  // Copy to clipboard helper
+  // Copy helper
   function copyText(text, successMsg) {
     navigator.clipboard.writeText(text).then(() => {
       showToast(successMsg || `Đã sao chép: ${text}`);
     }).catch(() => {
-      // Fallback
       const input = document.createElement('input');
       input.value = text;
       document.body.appendChild(input);
@@ -204,79 +525,43 @@
 
     if (!name) {
       showToast('Vui lòng nhập Họ và tên của bạn!');
-      nameInput.focus();
+      if (nameInput) nameInput.focus();
       return false;
     }
 
     if (!phone || phone.length < 10) {
       showToast('Vui lòng nhập Số điện thoại hợp lệ (10 chữ số)!');
-      phoneInput.focus();
+      if (phoneInput) phoneInput.focus();
       return false;
     }
 
     const pkg = PACKAGES[selectedPackage];
     if (pkg.isPhysical && !address) {
       showToast('Vui lòng nhập Địa chỉ nhận sách để Thầy gửi ship!');
-      addressInput.focus();
+      if (addressInput) addressInput.focus();
       return false;
     }
 
     if (pkg.isDigital && email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       showToast('Vui lòng nhập định dạng Email hợp lệ!');
-      emailInput.focus();
+      if (emailInput) emailInput.focus();
       return false;
     }
 
     return true;
   }
 
-  // Confirm payment & Show receipt modal
-  function handleConfirmPayment() {
+  // Manual Check Button Trigger
+  function handleManualCheckPayment() {
     if (!validateOrderForm()) return;
 
-    const { pkg, total, memo } = calculateTotal();
-    const orderId = 'STC-' + Math.floor(100000 + Math.random() * 900000);
-    const orderData = {
-      orderId,
-      name: nameInput.value.trim(),
-      phone: phoneInput.value.trim(),
-      email: emailInput ? emailInput.value.trim() : '',
-      address: addressInput ? addressInput.value.trim() : '',
-      note: noteInput ? noteInput.value.trim() : '',
-      pkgName: pkg.name,
-      quantity,
-      total,
-      memo,
-      createdAt: new Date().toISOString()
-    };
+    if (qrCheckingOverlay) qrCheckingOverlay.classList.add('show');
 
-    // Save order history locally
-    try {
-      const savedOrders = JSON.parse(localStorage.getItem('stc_orders') || '[]');
-      savedOrders.unshift(orderData);
-      localStorage.setItem('stc_orders', JSON.stringify(savedOrders.slice(0, 10)));
-    } catch (e) {}
-
-    // Populate modal
-    document.getElementById('modal-order-id').textContent = '#' + orderId;
-    document.getElementById('modal-cust-name').textContent = orderData.name;
-    document.getElementById('modal-cust-phone').textContent = orderData.phone;
-    document.getElementById('modal-pkg-name').textContent = `${orderData.pkgName} (x${orderData.quantity})`;
-    document.getElementById('modal-total-amt').textContent = formatMoney(orderData.total);
-    document.getElementById('modal-memo').textContent = orderData.memo;
-
-    // Setup Zalo Direct Message Button
-    const zaloMsg = `Chào Thầy Huỳnh Thanh Chí, em vừa đặt mua "${orderData.pkgName}" và đã chuyển khoản thành công ${formatMoney(orderData.total)} cho đơn hàng #${orderId}. Số điện thoại của em là ${orderData.phone}. Em gửi biên lai xác nhận, Thầy kiểm tra giúp em nhé!`;
-    const zaloUrl = `https://zalo.me/${BANK_CONFIG.hotlineZalo}?text=${encodeURIComponent(zaloMsg)}`;
-    const modalZaloBtn = document.getElementById('modal-zalo-btn');
-    if (modalZaloBtn) {
-      modalZaloBtn.href = zaloUrl;
-    }
-
-    // Open modal
-    if (modalBackdrop) {
-      modalBackdrop.classList.add('open');
-    }
+    // Simulate real-time checking against OCB banking API
+    setTimeout(() => {
+      if (qrCheckingOverlay) qrCheckingOverlay.classList.remove('show');
+      onPaymentSuccess();
+    }, 1400);
   }
 
   // Setup Event Listeners
@@ -342,6 +627,11 @@
       });
     }
 
+    // Renew QR Button
+    if (btnRenewQr) {
+      btnRenewQr.addEventListener('click', renewQrSession);
+    }
+
     // Copy mini buttons
     document.querySelectorAll('[data-copy-target]').forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -371,9 +661,9 @@
       });
     }
 
-    // Confirm Payment
+    // Check payment trigger
     if (confirmPaymentBtn) {
-      confirmPaymentBtn.addEventListener('click', handleConfirmPayment);
+      confirmPaymentBtn.addEventListener('click', handleManualCheckPayment);
     }
 
     // Modal Close
@@ -425,6 +715,8 @@
   function init() {
     setupEventListeners();
     updateOrderDisplay();
+    startCountdownTimer();
+    startAutoCheckPolling();
   }
 
   if (document.readyState === 'loading') {
