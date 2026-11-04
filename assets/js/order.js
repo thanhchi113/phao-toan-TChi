@@ -112,6 +112,7 @@
   const nameInput = document.getElementById('order-name');
   const phoneInput = document.getElementById('order-phone');
   const emailInput = document.getElementById('order-email');
+  const emailFormGroup = document.getElementById('email-form-group');
   const provinceInput = document.getElementById('order-province');
   const districtInput = document.getElementById('order-district');
   const houseInput = document.getElementById('order-house');
@@ -297,6 +298,9 @@
 
     const { pkg, subtotal, shipping, total, memo } = calculateTotal();
 
+    if (emailFormGroup) {
+      emailFormGroup.style.display = pkg.hasPdf ? 'block' : 'none';
+    }
     if (addressFieldsCard) {
       addressFieldsCard.style.display = pkg.isPhysical ? 'block' : 'none';
     }
@@ -688,7 +692,120 @@
     }
   }
 
-  async function downloadWatermarkedPdf(orderData, btnEl) {
+  function uint8ToBase64(uint8) {
+    let binary = '';
+    const chunkSize = 0x8000;
+    for (let i = 0; i < uint8.length; i += chunkSize) {
+      binary += String.fromCharCode.apply(null, uint8.subarray(i, i + chunkSize));
+    }
+    return btoa(binary);
+  }
+
+  async function buildWatermarkedPdfPayload(orderData) {
+    const res = await fetch('assets/pdf/so-tay-toan-thpt.pdf?v=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) throw new Error('PDF fetch failed');
+    const buf = await res.arrayBuffer();
+    const uint8 = new Uint8Array(buf);
+
+    const safeId = removeVietnameseTones(orderData.orderId || 'PTC000000').replace(/\s+/g, '') || 'PTC000000';
+    const safeName = removeVietnameseTones(orderData.name || 'KHACH HANG').slice(0, 26) || 'KHACH HANG';
+    const safePhone = String(orderData.phone || '').replace(/\D/g, '').slice(0, 12) || '0905957716';
+    const safeEmail = String(orderData.email || '').replace(/[^a-zA-Z0-9@._-]/g, '').toUpperCase().slice(0, 34) || 'KHACHHANG';
+
+    const SLOT_TOP   = 'BAN QUYEN LOP TOAN ANH CHI | MA DON: #PTC000000 | NGHIEM CAM SAO CHEP & CHIA SE FILE PDF'.padEnd(90, ' ');
+    const SLOT_BOT   = 'BAN QUYEN RIENG: #PTC000000 | KHACH HANG: NGUYEN VAN A | SDT: 0905957716 | LOP TOAN ANH CHI'.padEnd(96, ' ');
+    const SLOT_DIAG1 = 'BAN QUYEN LOP TOAN ANH CHI - MA DON: #PTC000000'.padEnd(68, ' ');
+    const SLOT_DIAG2 = 'NGUOI MUA: NGUYEN VAN A - SDT: 0905957716 - CAM CHIA SE'.padEnd(68, ' ');
+    const SLOT_META  = '%WM_TRACE:ID=#PTC000000|NAME=NGUYEN VAN A|PHONE=0905957716|EMAIL=LOPTOANANHCHI@GMAIL.COM'.padEnd(120, ' ');
+
+    const newTop   = `BAN QUYEN LOP TOAN ANH CHI | MA DON: #${safeId} | NGHIEM CAM SAO CHEP & CHIA SE FILE PDF`;
+    const newBot   = `BAN QUYEN RIENG: #${safeId} | KHACH HANG: ${safeName} | SDT: ${safePhone} | LOP TOAN ANH CHI`;
+    const newDiag1 = `BAN QUYEN LOP TOAN ANH CHI - MA DON: #${safeId}`;
+    const newDiag2 = `NGUOI MUA: ${safeName} - SDT: ${safePhone} - CAM CHIA SE`;
+    const newMeta  = `%WM_TRACE:ID=#${safeId}|NAME=${safeName}|PHONE=${safePhone}|EMAIL=${safeEmail}`;
+
+    replaceAsciiSlotInBuffer(uint8, SLOT_TOP, newTop);
+    replaceAsciiSlotInBuffer(uint8, SLOT_BOT, newBot);
+    replaceAsciiSlotInBuffer(uint8, SLOT_DIAG1, newDiag1);
+    replaceAsciiSlotInBuffer(uint8, SLOT_DIAG2, newDiag2);
+    replaceAsciiSlotInBuffer(uint8, SLOT_META, newMeta);
+
+    const fileName = `So-Tay-Toan-THPT-Ban-Quyen-${safeId}.pdf`;
+    const blob = new Blob([uint8], { type: 'application/pdf' });
+    return { uint8, blob, fileName, safeId };
+  }
+
+  function triggerBlobDownload(blob, fileName) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }
+
+  async function sendWatermarkedPdfToEmail(orderData, pdfPayload) {
+    if (!orderData || !orderData.email) return false;
+    const statusBox = document.getElementById('email-send-status-box');
+    const baseUrl = window.location.origin + window.location.pathname;
+    const personalPdfUrl = `${baseUrl}?dl_pdf=1&oid=${encodeURIComponent(orderData.orderId)}&name=${encodeURIComponent(orderData.name)}&phone=${encodeURIComponent(orderData.phone)}&email=${encodeURIComponent(orderData.email)}`;
+
+    // 1. Gửi qua Google Apps Script MailApp (Đính kèm trực tiếp file PDF đóng dấu bản quyền Mã đơn)
+    if (CONFIG.GAS_WEBAPP_URL) {
+      try {
+        const pdfBase64 = uint8ToBase64(pdfPayload.uint8);
+        fetch(CONFIG.GAS_WEBAPP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'sendOrderPdfEmail',
+            to: orderData.email,
+            cc: 'badaoqn132@gmail.com',
+            orderId: orderData.orderId,
+            name: orderData.name,
+            phone: orderData.phone,
+            pkgName: orderData.pkgName,
+            totalFormatted: formatMoney(orderData.total),
+            personalPdfUrl: personalPdfUrl,
+            fileName: pdfPayload.fileName,
+            pdfBase64: pdfBase64
+          })
+        }).catch(() => {});
+      } catch (e) {}
+    }
+
+    // 2. Gửi song song qua cổng Email tự động kèm link tải trực tiếp bản PDF đã đóng dấu Mã đơn
+    try {
+      fetch(`https://formsubmit.co/ajax/${orderData.email}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          _subject: `[Lớp Toán Anh Chí] File PDF Bản Quyền Sổ Tay Toán THPT - Mã Đơn #${orderData.orderId}`,
+          _cc: 'badaoqn132@gmail.com',
+          ma_don_hang: `#${orderData.orderId}`,
+          khach_hang: orderData.name,
+          so_dien_thoai: orderData.phone,
+          email_nhan_file: orderData.email,
+          goi_san_pham: orderData.pkgName,
+          so_tien_thanh_toan: formatMoney(orderData.total),
+          link_tai_file_pdf_dong_dau_ban_quyen: personalPdfUrl,
+          ghi_chu_ban_quyen: `File PDF của bạn đã được đóng dấu bản quyền Mã đơn #${orderData.orderId} (${orderData.name} - ${orderData.phone}) trên tất cả 22 trang. Bấm vào link trên để tải file bất kỳ lúc nào.`
+        })
+      }).catch(() => {});
+    } catch (e) {}
+
+    if (statusBox) {
+      statusBox.innerHTML = `
+        <svg class="ui-ico" style="width:14px;height:14px;vertical-align:-2px;color:#15803d;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        <b>Đã tự động tải về &amp; gửi Email:</b> File PDF đóng dấu bản quyền Mã đơn <b>#${orderData.orderId}</b> đã được tự động tải xuống và gửi tới hộp thư <b>${orderData.email}</b>!
+      `;
+    }
+    return true;
+  }
+
+  async function downloadWatermarkedPdf(orderData, btnEl, opts = {}) {
     const origHtml = btnEl ? btnEl.innerHTML : '';
     try {
       if (btnEl) {
@@ -696,45 +813,15 @@
         btnEl.innerHTML = '<span>Đang đóng dấu bản quyền Mã đơn #' + orderData.orderId + '...</span>';
       }
 
-      const res = await fetch('assets/pdf/so-tay-toan-thpt.pdf?v=' + Date.now(), { cache: 'no-store' });
-      if (!res.ok) throw new Error('PDF fetch failed');
-      const buf = await res.arrayBuffer();
-      const uint8 = new Uint8Array(buf);
+      const payload = await buildWatermarkedPdfPayload(orderData);
+      triggerBlobDownload(payload.blob, payload.fileName);
 
-      const safeId = removeVietnameseTones(orderData.orderId || 'PTC000000').replace(/\s+/g, '') || 'PTC000000';
-      const safeName = removeVietnameseTones(orderData.name || 'KHACH HANG').slice(0, 26) || 'KHACH HANG';
-      const safePhone = String(orderData.phone || '').replace(/\D/g, '').slice(0, 12) || '0905957716';
-      const safeEmail = String(orderData.email || '').replace(/[^a-zA-Z0-9@._-]/g, '').toUpperCase().slice(0, 34) || 'KHACHHANG';
-
-      const SLOT_TOP   = 'BAN QUYEN LOP TOAN ANH CHI | MA DON: #PTC000000 | NGHIEM CAM SAO CHEP & CHIA SE FILE PDF'.padEnd(90, ' ');
-      const SLOT_BOT   = 'BAN QUYEN RIENG: #PTC000000 | KHACH HANG: NGUYEN VAN A | SDT: 0905957716 | LOP TOAN ANH CHI'.padEnd(96, ' ');
-      const SLOT_DIAG1 = 'BAN QUYEN LOP TOAN ANH CHI - MA DON: #PTC000000'.padEnd(68, ' ');
-      const SLOT_DIAG2 = 'NGUOI MUA: NGUYEN VAN A - SDT: 0905957716 - CAM CHIA SE'.padEnd(68, ' ');
-      const SLOT_META  = '%WM_TRACE:ID=#PTC000000|NAME=NGUYEN VAN A|PHONE=0905957716|EMAIL=LOPTOANANHCHI@GMAIL.COM'.padEnd(120, ' ');
-
-      const newTop   = `BAN QUYEN LOP TOAN ANH CHI | MA DON: #${safeId} | NGHIEM CAM SAO CHEP & CHIA SE FILE PDF`;
-      const newBot   = `BAN QUYEN RIENG: #${safeId} | KHACH HANG: ${safeName} | SDT: ${safePhone} | LOP TOAN ANH CHI`;
-      const newDiag1 = `BAN QUYEN LOP TOAN ANH CHI - MA DON: #${safeId}`;
-      const newDiag2 = `NGUOI MUA: ${safeName} - SDT: ${safePhone} - CAM CHIA SE`;
-      const newMeta  = `%WM_TRACE:ID=#${safeId}|NAME=${safeName}|PHONE=${safePhone}|EMAIL=${safeEmail}`;
-
-      replaceAsciiSlotInBuffer(uint8, SLOT_TOP, newTop);
-      replaceAsciiSlotInBuffer(uint8, SLOT_BOT, newBot);
-      replaceAsciiSlotInBuffer(uint8, SLOT_DIAG1, newDiag1);
-      replaceAsciiSlotInBuffer(uint8, SLOT_DIAG2, newDiag2);
-      replaceAsciiSlotInBuffer(uint8, SLOT_META, newMeta);
-
-      const blob = new Blob([uint8], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `So-Tay-Toan-THPT-Ban-Quyen-${safeId}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
-
-      showToast(`Đã tải PDF đóng dấu bản quyền Mã đơn #${safeId}!`);
+      if (opts.autoSendEmail && orderData.email) {
+        await sendWatermarkedPdfToEmail(orderData, payload);
+        showToast(`Đã tự động tải & gửi PDF bản quyền #${payload.safeId} về ${orderData.email}!`);
+      } else {
+        showToast(`Đã tải PDF đóng dấu bản quyền Mã đơn #${payload.safeId}!`);
+      }
     } catch (e) {
       showToast('Không thể tạo file PDF lúc này, vui lòng thử lại!');
     } finally {
@@ -789,8 +876,12 @@
       <div style="margin-bottom: 16px;">
         <button type="button" id="btn-download-watermarked-pdf" class="download-vip-btn" style="width: 100%; justify-content: center; border: none; cursor: pointer;">
           <svg class="ui-ico" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-          <span>Tải File Sách PDF (Bản Quyền #${orderData.orderId})</span>
+          <span>Tải Lại File Sách PDF (Bản Quyền #${orderData.orderId})</span>
         </button>
+        <div id="email-send-status-box" style="background:#f0fdf4; border:1px solid #86efac; border-radius:8px; padding:9px 11px; margin-bottom:8px; font-size:12px; color:#166534; line-height:1.45; text-align:left;">
+          <svg class="ui-ico" style="width:13px;height:13px;vertical-align:-2px;color:#15803d;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          Đang tự động tải xuống &amp; gửi file PDF đóng dấu bản quyền Mã đơn <b>#${orderData.orderId}</b> về email <b>${orderData.email}</b>...
+        </div>
         <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:9px 11px; margin-bottom:10px; font-size:12px; color:#991b1b; line-height:1.45; text-align:left;">
           <svg class="ui-ico" style="width:13px;height:13px;vertical-align:-2px;color:#dc2626;" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
           <b>Bảo vệ bản quyền PDF:</b> File PDF đính kèm đã được đóng dấu mã đơn <b>#${orderData.orderId}</b> (${orderData.name} &bull; ${orderData.phone}) trên từng trang để xác thực chủ sở hữu và phát hiện nguồn chia sẻ trái phép.
@@ -862,12 +953,17 @@
 
       const dlPdfBtn = document.getElementById('btn-download-watermarked-pdf');
       if (dlPdfBtn) {
-        dlPdfBtn.addEventListener('click', () => downloadWatermarkedPdf(orderData, dlPdfBtn));
+        dlPdfBtn.addEventListener('click', () => downloadWatermarkedPdf(orderData, dlPdfBtn, { autoSendEmail: false }));
       }
 
       const newOrderBtn = document.getElementById('btn-start-new-order');
       if (newOrderBtn) {
         newOrderBtn.addEventListener('click', startNewOrderSession);
+      }
+
+      // Khi thanh toán thành công và gói có kèm PDF + đã điền email: Tự động tải về máy & gửi file PDF đóng dấu bản quyền tới email đã điền
+      if (pkg.hasPdf && orderData.email) {
+        downloadWatermarkedPdf(orderData, dlPdfBtn, { autoSendEmail: true });
       }
     }
 
@@ -952,13 +1048,15 @@
       return false;
     }
 
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      showToast('Vui lòng nhập Email hợp lệ để nhận biên lai & tài liệu!');
-      if (emailInput) emailInput.focus();
-      return false;
+    const pkg = PACKAGES[selectedPackage];
+    if (pkg.hasPdf) {
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showToast('Vui lòng nhập Email hợp lệ để nhận tự động file PDF bản quyền!');
+        if (emailInput) emailInput.focus();
+        return false;
+      }
     }
 
-    const pkg = PACKAGES[selectedPackage];
     if (pkg.isPhysical && selectedDelivery === 'ship_qn') {
       const house = houseInput ? houseInput.value.trim() : '';
       const street = streetInput ? streetInput.value.trim() : '';
@@ -1651,12 +1749,31 @@
     }
   }
 
+  // Tự động kích hoạt tải file PDF đóng dấu bản quyền khi người mua mở link từ Email (?dl_pdf=1&oid=...)
+  function checkEmailDirectDownloadLink() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('dl_pdf') === '1' && params.get('oid')) {
+        const directOrder = {
+          orderId: params.get('oid') || 'PTC000000',
+          name: params.get('name') || 'KHACH HANG',
+          phone: params.get('phone') || '0905957716',
+          email: params.get('email') || ''
+        };
+        setTimeout(() => {
+          downloadWatermarkedPdf(directOrder, null, { autoSendEmail: false });
+        }, 500);
+      }
+    } catch (e) {}
+  }
+
   // Init
   function init() {
     setupEventListeners();
     updateOrderDisplay();
     setupSocialProof();
     setupAdminPortal();
+    checkEmailDirectDownloadLink();
   }
 
   if (document.readyState === 'loading') {
