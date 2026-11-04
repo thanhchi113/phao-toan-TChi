@@ -876,8 +876,20 @@
     const adminExportJsonBtn = document.getElementById('admin-export-json-btn');
     const adminRefreshBtn = document.getElementById('admin-refresh-btn');
     const adminLogoutBtn = document.getElementById('admin-logout-btn');
+    const adminForgotToggle = document.getElementById('admin-forgot-toggle');
+    const adminResetCard = document.getElementById('admin-reset-card');
+    const btnRequestResetOtp = document.getElementById('btn-request-reset-otp');
+    const resetStage1 = document.getElementById('reset-stage-1');
+    const resetStage2 = document.getElementById('reset-stage-2');
+    const resetOtpCode = document.getElementById('reset-otp-code');
+    const resetNewPassword = document.getElementById('reset-new-password');
+    const btnSubmitNewPassword = document.getElementById('btn-submit-new-password');
 
     let isAdminLoggedIn = false;
+
+    function getAdminPassword() {
+      return localStorage.getItem('stc_admin_custom_pwd') || CONFIG.ADMIN_PASSWORD || '336699';
+    }
 
     function openAdminModal() {
       if (!adminBackdrop) return;
@@ -911,7 +923,7 @@
 
     function handleLogin() {
       const pwd = adminPasswordInput ? adminPasswordInput.value.trim() : '';
-      const correctPwd = CONFIG.ADMIN_PASSWORD || 'thanhchi113';
+      const correctPwd = getAdminPassword();
       if (pwd === correctPwd) {
         isAdminLoggedIn = true;
         showToast('Đăng nhập Quản trị viên thành công!');
@@ -1094,6 +1106,99 @@
     });
     if (adminSearchInput) {
       adminSearchInput.addEventListener('input', (e) => renderAdminOrders(e.target.value));
+    }
+
+    // Toggle khung cấp quyền đổi mật khẩu qua email
+    if (adminForgotToggle) {
+      adminForgotToggle.addEventListener('click', () => {
+        if (!adminResetCard) return;
+        const isHidden = adminResetCard.style.display === 'none';
+        adminResetCard.style.display = isHidden ? 'block' : 'none';
+        if (isHidden && resetOtpCode) {
+          setTimeout(() => resetOtpCode.focus(), 150);
+        }
+      });
+    }
+
+    // Gửi mã xác thực OTP về email badaoqn132@gmail.com
+    if (btnRequestResetOtp) {
+      btnRequestResetOtp.addEventListener('click', async () => {
+        btnRequestResetOtp.disabled = true;
+        btnRequestResetOtp.innerHTML = '<span>Đang gửi mã về email...</span>';
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const expire = Date.now() + 15 * 60 * 1000; // 15 phút
+        sessionStorage.setItem('stc_admin_reset_token', JSON.stringify({ otp, expire }));
+
+        const targetEmail = CONFIG.ADMIN_RECOVERY_EMAIL || 'badaoqn132@gmail.com';
+
+        // Gửi qua webhook FormSubmit đến badaoqn132@gmail.com
+        try {
+          fetch(`https://formsubmit.co/ajax/${targetEmail}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({
+              _subject: `[Sổ Tay Toán - Thầy Huỳnh Thanh Chí] Mã OTP Cấp Quyền Đổi Mật Khẩu Admin: ${otp}`,
+              email_admin: targetEmail,
+              ma_xac_thuc_otp: otp,
+              noi_dung: `Chào Thầy Huỳnh Thanh Chí,\n\nHệ thống vừa ghi nhận yêu cầu cấp quyền đổi mật khẩu quản trị Sổ Tay Toán.\n\nMã xác thực OTP của Thầy là: ${otp}\n\nMã có giá trị trong 15 phút. Nếu Thầy không yêu cầu, vui lòng bỏ qua thư này.`,
+              thoi_gian: new Date().toLocaleString('vi-VN')
+            })
+          }).catch(() => {});
+        } catch (err) {}
+
+        setTimeout(() => {
+          btnRequestResetOtp.disabled = false;
+          btnRequestResetOtp.innerHTML = '<span>Đã Gửi Mã &bull; Bấm Để Gửi Lại</span>';
+          if (resetStage2) resetStage2.style.display = 'block';
+          if (resetOtpCode) resetOtpCode.focus();
+          showToast(`Đã gửi quyền và mã OTP về ${targetEmail}!`);
+        }, 600);
+      });
+    }
+
+    // Xác thực OTP và cập nhật mật khẩu mới
+    if (btnSubmitNewPassword) {
+      btnSubmitNewPassword.addEventListener('click', () => {
+        const inputOtp = resetOtpCode ? resetOtpCode.value.trim() : '';
+        const newPwd = resetNewPassword ? resetNewPassword.value.trim() : '';
+
+        let tokenData = null;
+        try {
+          tokenData = JSON.parse(sessionStorage.getItem('stc_admin_reset_token') || 'null');
+        } catch (e) {}
+
+        if (!tokenData || tokenData.otp !== inputOtp) {
+          showToast('Mã OTP không chính xác!');
+          if (resetOtpCode) resetOtpCode.focus();
+          return;
+        }
+
+        if (Date.now() > tokenData.expire) {
+          showToast('Mã OTP đã hết hạn! Vui lòng bấm gửi lại mã.');
+          return;
+        }
+
+        if (!newPwd || newPwd.length < 6) {
+          showToast('Mật khẩu mới phải có tối thiểu 6 ký tự!');
+          if (resetNewPassword) resetNewPassword.focus();
+          return;
+        }
+
+        localStorage.setItem('stc_admin_custom_pwd', newPwd);
+        sessionStorage.removeItem('stc_admin_reset_token');
+
+        if (adminResetCard) adminResetCard.style.display = 'none';
+        if (resetStage2) resetStage2.style.display = 'none';
+        if (resetOtpCode) resetOtpCode.value = '';
+        if (resetNewPassword) resetNewPassword.value = '';
+
+        showToast('Đã đổi mật khẩu Admin thành công! Vui lòng đăng nhập.');
+        if (adminPasswordInput) {
+          adminPasswordInput.value = newPwd;
+          adminPasswordInput.focus();
+        }
+      });
     }
 
     // Secret shortcut: Ctrl + Shift + A

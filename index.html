@@ -16,6 +16,46 @@
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;0,9..144,800;1,9..144,600&family=Patrick+Hand&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="assets/css/style.css">
+
+  <!-- Security: Chặn F12, Phím tắt Developer Tools và Chuột phải -->
+  <script>
+    (function() {
+      // Chặn F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C, Ctrl+U, Ctrl+S
+      window.addEventListener('keydown', function(e) {
+        // Luôn cho phép phím tắt quản trị riêng của Thầy Chí: Ctrl + Shift + A
+        if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+          return true;
+        }
+
+        // Chặn F12
+        if (e.key === 'F12' || e.keyCode === 123) {
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
+        }
+
+        // Chặn Ctrl + Shift + I/J/C (DevTools)
+        if (e.ctrlKey && e.shiftKey && ['i', 'I', 'j', 'J', 'c', 'C'].includes(e.key)) {
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
+        }
+
+        // Chặn Ctrl + U (Xem mã nguồn HTML), Ctrl + S (Lưu trang)
+        if (e.ctrlKey && ['u', 'U', 's', 'S'].includes(e.key)) {
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
+        }
+      }, true);
+
+      // Chặn chuột phải (Inspect Element)
+      document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        return false;
+      }, true);
+    })();
+  </script>
 </head>
 <body>
 
@@ -966,7 +1006,40 @@
               <span>Đăng Nhập</span>
             </button>
           </div>
-          <div class="admin-gate-hint">Mật khẩu mặc định: <code>thanhchi113</code> (Cấu hình trong <code>payment-config.js</code>)</div>
+          <div class="admin-gate-footer-actions">
+            <button type="button" class="admin-link-action" id="admin-forgot-toggle">Quên hoặc Đổi Mật Khẩu?</button>
+          </div>
+
+          <!-- Password Reset Card (Cấp quyền đổi mật khẩu về email badaoqn132@gmail.com) -->
+          <div class="admin-reset-card" id="admin-reset-card" style="display: none;">
+            <div class="admin-reset-head">
+              <svg class="ui-ico" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+              <span>Cấp Quyền Đổi Mật Khẩu Qua Email</span>
+            </div>
+            <p class="admin-reset-note">
+              Quyền và mã xác thực OTP sẽ được gửi trực tiếp về email của Thầy: <b>badaoqn132@gmail.com</b>
+            </p>
+
+            <div id="reset-stage-1">
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-request-reset-otp" style="width: 100%;">
+                <svg class="ui-ico" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                <span>Gửi Mã Xác Thực Về badaoqn132@gmail.com</span>
+              </button>
+            </div>
+
+            <div id="reset-stage-2" style="display: none; margin-top: 12px;">
+              <div class="reset-otp-alert" id="reset-otp-msg">
+                Đã gửi mã xác nhận đến <b>badaoqn132@gmail.com</b>! Thầy vui lòng kiểm tra hộp thư (hoặc mục Thư rác/Spam) và nhập mã 6 số bên dưới:
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
+                <input type="text" id="reset-otp-code" class="form-input" placeholder="Nhập mã OTP 6 số..." maxlength="6" inputmode="numeric" style="text-align: center; font-size: 16px; letter-spacing: 3px; font-weight: 700;">
+                <input type="password" id="reset-new-password" class="form-input" placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)...">
+                <button type="button" class="btn btn-green btn-sm" id="btn-submit-new-password" style="width: 100%;">
+                  <span>Xác Nhận &amp; Cập Nhật Mật Khẩu</span>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

@@ -31,5 +31,6 @@ window.PAYMENT_CONFIG = {
   SEPAY_ACCOUNT_NUMBER: '0169100000679007',
 
   // Mật khẩu khu vực Quản Trị Khách Hàng (Admin) - Dành riêng cho Thầy Chí
-  ADMIN_PASSWORD: 'thanhchi113'
+  ADMIN_PASSWORD: '336699',
+  ADMIN_RECOVERY_EMAIL: 'badaoqn132@gmail.com'
 };
