@@ -11,12 +11,12 @@
   const CHAPTERS = [
     { title: 'Trang Bìa', page: 1 },
     { title: 'Lời Nói Đầu', page: 2 },
-    { title: 'Mục Lục (16 Chuyên Đề)', page: 3 },
-    { title: '01. Mệnh đề & Tập hợp', page: 6 },
-    { title: '03. Hàm số, Đồ thị & Ứng dụng', page: 9 },
-    { title: '07. Hàm số Mũ & Logarit', page: 12 },
-    { title: '09. Nguyên hàm & Tích phân', page: 18 },
-    { title: 'Bìa Sau & Tổng Kết', page: 25 }
+    { title: 'Mục Lục 16 CĐ', page: 3 },
+    { title: '01. Mệnh Đề', page: 6 },
+    { title: '03. Hàm Số & Đồ Thị', page: 9 },
+    { title: '07. Mũ & Logarit', page: 12 },
+    { title: '09. Nguyên Hàm – Tích Phân', page: 18 },
+    { title: 'Bìa Sau', page: 25 }
   ];
 
   // State

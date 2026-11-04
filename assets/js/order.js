@@ -162,7 +162,7 @@
 
   // Format VND
   function formatMoney(amount) {
-    return new Intl.NumberFormat('vi-VN').format(amount) + ' đ';
+    return new Intl.NumberFormat('vi-VN').format(amount) + '\u00A0đ';
   }
 
   function removeVietnameseTones(str) {
@@ -311,17 +311,17 @@
       qnShipFields.style.display = selectedDelivery === 'ship_qn' ? 'block' : 'none';
     }
 
-    if (sumPkgNameEl) sumPkgNameEl.textContent = `${pkg.name} (x${quantity})`;
+    if (sumPkgNameEl) sumPkgNameEl.textContent = `${pkg.name}\u00A0(x${quantity})`;
     if (sumSubtotalEl) sumSubtotalEl.textContent = formatMoney(subtotal);
     if (sumShippingEl) {
       if (!pkg.isPhysical) {
-        sumShippingEl.textContent = 'Nhận trực tuyến (0 đ)';
+        sumShippingEl.textContent = 'Nhận trực tuyến (0\u00A0đ)';
         sumShippingEl.style.color = 'var(--green)';
       } else if (selectedDelivery === 'pickup') {
-        sumShippingEl.textContent = 'Ghé 84/11 Đô Đốc Bảo (0 đ)';
+        sumShippingEl.textContent = 'Ghé 84/11 Đô Đốc Bảo (0\u00A0đ)';
         sumShippingEl.style.color = 'var(--green)';
       } else {
-        sumShippingEl.textContent = '10.000 đ (Giao tại Quy Nhơn)';
+        sumShippingEl.textContent = '10.000\u00A0đ (Giao tại Quy Nhơn)';
         sumShippingEl.style.color = 'var(--text)';
       }
     }
