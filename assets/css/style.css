@@ -3766,26 +3766,45 @@ input[type="file"].admin-input-sm {
 /* ==========================================================================
    FULL 16-CHAPTER TOC SHOWCASE GRID & TYPOGRAPHY BALANCE
    ========================================================================== */
-h1, h2, h3, h4,
+.nowrap {
+  white-space: nowrap;
+}
+
 .hero-title,
 .section-title,
-.chapter-title,
 .full-toc-title,
-.faq-q,
-.qr-gate-title,
-.footer-title {
+.qr-gate-title {
   text-wrap: balance;
 }
 
-.hero-desc,
-.section-desc,
-.package-desc,
-.faq-a,
-.chapter-bullets li,
-.footer-text,
-.qn-scope-notice,
-.sale-deadline-banner {
-  text-wrap: pretty;
+.faq-grid {
+  align-items: stretch;
+}
+
+.faq-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding: 20px 22px;
+}
+
+.faq-q {
+  font-size: 15.5px;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  margin: 0 0 10px;
+}
+
+.faq-a {
+  font-size: 14px;
+  line-height: 1.62;
+  margin: 0;
+}
+
+@media (min-width: 961px) {
+  .faq-q {
+    white-space: nowrap;
+  }
 }
 
 .hero-features {
