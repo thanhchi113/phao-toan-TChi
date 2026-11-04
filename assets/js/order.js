@@ -700,14 +700,14 @@
     } catch (e) {}
     return [{
       id: 'default',
-      title: 'Sổ Tay Tóm Tắt Toán THPT - Tài Liệu Môn Toán Biên Soạn Mới Nhất',
+      title: 'Sổ Tay Tóm Tắt Toán THPT - Bản Đầy Đủ 16 Chuyên Đề (128 Trang)',
       package_scope: 'all',
       file_name: 'so-tay-toan-thpt-master.pdf',
-      file_size: 277702,
-      page_count: 22,
+      file_size: 2120187,
+      page_count: 128,
       storage_path: SUPABASE_CFG.defaultMasterPath,
       public_url: getSupabasePublicUrl(SUPABASE_CFG.defaultMasterPath),
-      version_note: 'Bản gốc chuẩn đóng dấu bản quyền trên Supabase Cloud',
+      version_note: 'Bản đầy đủ 16 chuyên đề Toán 10-11-12 (128 trang PDF) chuẩn đóng dấu bản quyền trên Supabase Cloud',
       is_default_slot_pdf: true,
       updated_at: new Date().toISOString()
     }];
@@ -1702,7 +1702,7 @@
 
     let isAdminLoggedIn = false;
     let selectedUploadFileBytes = null;
-    let selectedUploadPageCount = 22;
+    let selectedUploadPageCount = 128;
     const selectedOrderIds = new Set();
 
     function getAdminPassword() {
@@ -1851,7 +1851,7 @@
               <b style="color:var(--text); font-size:13px;">${t.title || t.file_name}</b>
             </div>
             <div style="color:var(--text-3); font-size:11.5px;">
-              File trên Supabase: <code>${t.storage_path}</code> &bull; Dung lượng: <b>${formatBytes(t.file_size)}</b> &bull; Số trang: <b>${t.page_count || 22} trang</b>
+              File trên Supabase: <code>${t.storage_path}</code> &bull; Dung lượng: <b>${formatBytes(t.file_size)}</b> &bull; Số trang: <b>${t.page_count || 128} trang</b>
               ${t.version_note ? ` &bull; Ghi chú: <i>${t.version_note}</i>` : ''}
             </div>
           </div>
@@ -2181,7 +2181,7 @@
         try {
           const ab = await file.arrayBuffer();
           selectedUploadFileBytes = new Uint8Array(ab);
-          selectedUploadPageCount = 22;
+          selectedUploadPageCount = 128;
           if (window.PDFLib && window.PDFLib.PDFDocument) {
             try {
               const doc = await window.PDFLib.PDFDocument.load(selectedUploadFileBytes, { ignoreEncryption: true });

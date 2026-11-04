@@ -3762,3 +3762,102 @@ input[type="file"].admin-input-sm {
   pointer-events: none;
   opacity: 0.72;
 }
+
+/* ==========================================================================
+   FULL 16-CHAPTER TOC SHOWCASE GRID
+   ========================================================================== */
+.full-toc-showcase {
+  margin-top: 28px;
+  background: var(--paper-2, #fffcf7);
+  border: 1.5px solid var(--line, #e6dccf);
+  border-radius: var(--radius-lg, 18px);
+  padding: 24px;
+  box-shadow: 0 8px 28px rgba(61, 12, 14, 0.05);
+}
+
+.full-toc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px dashed var(--line, #e6dccf);
+}
+
+.full-toc-badge {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink, #650f12);
+  background: rgba(101, 15, 18, 0.08);
+  padding: 4px 10px;
+  border-radius: 999px;
+  margin-bottom: 4px;
+}
+
+.full-toc-title {
+  margin: 0;
+  font: 700 20px/1.3 var(--serif, Georgia, serif);
+  color: var(--ink-deep, #2d0708);
+}
+
+.full-toc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+}
+
+.toc-item-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 1px solid var(--line, #e6dccf);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13.5px;
+  line-height: 1.35;
+  color: var(--text, #2b211e);
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.toc-item-pill:hover {
+  border-color: var(--ink, #650f12);
+  transform: translateY(-1px);
+}
+
+.toc-item-pill b {
+  color: var(--ink, #650f12);
+  font-family: var(--serif, Georgia, serif);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.toc-item-pill span {
+  flex: 1;
+  font-weight: 500;
+}
+
+.toc-item-pill small {
+  color: var(--muted, #7a6a63);
+  font-size: 11.5px;
+  font-weight: 600;
+  background: var(--paper, #fbf7ef);
+  padding: 2px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .full-toc-showcase {
+    padding: 16px;
+  }
+  .full-toc-grid {
+    grid-template-columns: 1fr;
+  }
+}

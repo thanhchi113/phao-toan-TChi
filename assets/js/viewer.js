@@ -1,5 +1,5 @@
 /**
- * INTERACTIVE DOCUMENT VIEWER (22 Trang Sổ Tay Toán THPT)
+ * INTERACTIVE DOCUMENT VIEWER (Bản Đọc Thử Sổ Tay Toán THPT - 16 Chuyên Đề)
  * Hỗ trợ cảm ứng vuốt chạm điện thoại (Swipe / Drag), Lật sách 3D (Flipbook),
  * Cuộn liên tục (Continuous Scroll), Phóng to (Zoom & Pan), Toàn màn hình & Audio lật giấy.
  */
@@ -7,15 +7,16 @@
 (function () {
   'use strict';
 
-  const TOTAL_PAGES = 22;
+  const TOTAL_PAGES = 25;
   const CHAPTERS = [
     { title: 'Trang Bìa', page: 1 },
-    { title: 'Mục Lục', page: 2 },
-    { title: '01. Mệnh đề & Tập hợp', page: 3 },
-    { title: '03. Hàm số, Đồ thị & Ứng dụng', page: 6 },
-    { title: '07. Mũ & Logarit', page: 9 },
-    { title: '09. Nguyên hàm & Tích phân', page: 15 },
-    { title: 'Bìa Sau & Tổng Kết', page: 22 }
+    { title: 'Lời Nói Đầu', page: 2 },
+    { title: 'Mục Lục (16 Chuyên Đề)', page: 3 },
+    { title: '01. Mệnh đề & Tập hợp', page: 6 },
+    { title: '03. Hàm số, Đồ thị & Ứng dụng', page: 9 },
+    { title: '07. Hàm số Mũ & Logarit', page: 12 },
+    { title: '09. Nguyên hàm & Tích phân', page: 18 },
+    { title: 'Bìa Sau & Tổng Kết', page: 25 }
   ];
 
   // State
@@ -207,18 +208,18 @@
     } else {
       // Desktop Double Page Spread:
       // Page 1 is Cover (alone on right)
-      // Page 2-3, 4-5, ..., 20-21
-      // Page 22 is Back Cover (alone on left)
+      // Page 2-3, 4-5, ..., 22-23
+      // Page 24 (last content page) & Page 25 (Back Cover alone on left)
       if (currentPage === 1) {
         leftPageNum = null;
         rightPageNum = 1;
-      } else if (currentPage === TOTAL_PAGES && TOTAL_PAGES % 2 === 0) {
+      } else if (currentPage === TOTAL_PAGES) {
         leftPageNum = TOTAL_PAGES;
         rightPageNum = null;
       } else {
         if (currentPage % 2 === 0) {
           leftPageNum = currentPage;
-          rightPageNum = Math.min(currentPage + 1, TOTAL_PAGES);
+          rightPageNum = (currentPage + 1 < TOTAL_PAGES) ? (currentPage + 1) : null;
         } else {
           leftPageNum = currentPage - 1;
           rightPageNum = currentPage;
@@ -277,14 +278,14 @@
 
   function nextPage() {
     isDoublePage = window.innerWidth > 820;
-    let step = (isDoublePage && viewMode === 'flip' && currentPage > 1 && currentPage < TOTAL_PAGES) ? 2 : 1;
+    let step = (isDoublePage && viewMode === 'flip' && currentPage > 1 && currentPage < TOTAL_PAGES - 1) ? 2 : 1;
     if (currentPage === 1 && isDoublePage && viewMode === 'flip') step = 1;
     goToPage(currentPage + step);
   }
 
   function prevPage() {
     isDoublePage = window.innerWidth > 820;
-    let step = (isDoublePage && viewMode === 'flip' && currentPage > 2) ? 2 : 1;
+    let step = (isDoublePage && viewMode === 'flip' && currentPage > 2 && currentPage < TOTAL_PAGES) ? 2 : 1;
     if (currentPage === 2 && isDoublePage && viewMode === 'flip') step = 1;
     goToPage(currentPage - step);
   }
