@@ -14,17 +14,18 @@
     ACCOUNT_NO: '0169100000679007',
     ACCOUNT_NAME: 'HUYNH THANH CHI',
     HOTLINE_ZALO: '0905957716',
+    HOTLINE_DISPLAY: '090 595 7716',
     POLL_INTERVAL_MS: 3000,
     SEPAY_API_TOKEN: '',
     SEPAY_ACCOUNT_NUMBER: '0169100000679007'
   };
 
-  // Packages: Áp dụng hiệu ứng chim mồi (Decoy Effect) tối ưu chuyển đổi
+  // Packages: Áp dụng hiệu ứng chim mồi & Săn sale (49k - 39k - 29k, giảm > 50%)
   const PACKAGES = {
     combo: {
       id: 'combo',
       name: 'COMBO Toàn Diện (Sách Giấy In + Bản PDF VIP + Video)',
-      price: 50000,
+      price: 49000,
       oldPrice: 100000,
       shipping: 0,
       isDigital: false,
@@ -33,7 +34,7 @@
     print: {
       id: 'print',
       name: 'Sổ Tay In Giấy Màu A5 Cao Cấp (Bản Cầm Tay)',
-      price: 40000,
+      price: 39000,
       oldPrice: 70000,
       shipping: 20000,
       isDigital: false,
@@ -42,7 +43,7 @@
     ebook: {
       id: 'ebook',
       name: 'Bản Ebook PDF Full HD Bản Quyền (Tra cứu tiện lợi)',
-      price: 30000,
+      price: 29000,
       oldPrice: 50000,
       shipping: 0,
       isDigital: true,
@@ -479,7 +480,7 @@
           <div style="display:flex; flex-direction:column; gap:8px;">
             <a href="https://zalo.me/${CONFIG.HOTLINE_ZALO}?text=${encodeURIComponent(`Chào Thầy Huỳnh Thanh Chí, em đã thanh toán thành công đơn hàng #${orderData.orderId} (${formatMoney(orderData.total)}). Thầy kiểm tra giúp em nhé!`)}" target="_blank" rel="noopener" class="btn btn-zalo btn-sm" style="width:100%;">
               <svg class="ui-ico" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-              <span>Nhắn Zalo Thầy Huỳnh Thanh Chí (${CONFIG.HOTLINE_ZALO})</span>
+              <span>Nhắn Zalo Thầy Huỳnh Thanh Chí (${CONFIG.HOTLINE_DISPLAY || '090 595 7716'})</span>
             </a>
           </div>
         </div>
@@ -711,12 +712,31 @@
     }
   }
 
+  // Social Proof Live Counter
+  function setupSocialProof() {
+    const counterEl = document.getElementById('registered-counter');
+    if (!counterEl) return;
+    let baseCount = 138;
+    setInterval(() => {
+      if (baseCount < 147 && Math.random() > 0.45) {
+        baseCount += 1;
+        counterEl.textContent = baseCount;
+        const fillEl = document.querySelector('.proof-bar-fill');
+        if (fillEl) {
+          const pct = Math.round((baseCount / 150) * 100);
+          fillEl.style.width = pct + '%';
+        }
+      }
+    }, 40000);
+  }
+
   // Init
   function init() {
     setupEventListeners();
     updateOrderDisplay();
     startCountdownTimer();
     startAutoCheckPolling();
+    setupSocialProof();
   }
 
   if (document.readyState === 'loading') {

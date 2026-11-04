@@ -13,6 +13,7 @@ window.PAYMENT_CONFIG = {
   ACCOUNT_NO: '0169100000679007',
   ACCOUNT_NAME: 'HUYNH THANH CHI',
   HOTLINE_ZALO: '0905957716',
+  HOTLINE_DISPLAY: '090 595 7716',
 
   // Chu kỳ tự động kiểm tra giao dịch (mili-giây) - Mặc định 3 giây/lần
   POLL_INTERVAL_MS: 3000,

@@ -44,9 +44,9 @@
       </nav>
 
       <div class="nav-actions">
-        <a href="https://zalo.me/0905957716" target="_blank" rel="noopener" class="nav-hotline" title="Nhắn Zalo Thầy Chí">
+        <a href="https://zalo.me/0905957716" target="_blank" rel="noopener" class="nav-hotline" title="Nhắn Zalo Thầy Huỳnh Thanh Chí">
           <svg class="ui-ico" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-          <span>0905 957 716</span>
+          <span>090 595 7716</span>
         </a>
         <a href="#dat-mua" class="btn btn-primary btn-sm">
           <span>Đặt Mua Ngay</span>
@@ -71,7 +71,7 @@
     </ul>
     <div style="display: flex; gap: 8px;">
       <a href="#dat-mua" class="btn btn-primary" style="flex: 1;">Đặt Mua Ngay</a>
-      <a href="https://zalo.me/0905957716" target="_blank" class="btn btn-zalo" style="flex: 1;">Zalo: 0905 957 716</a>
+      <a href="https://zalo.me/0905957716" target="_blank" class="btn btn-zalo" style="flex: 1;">Zalo: 090 595 7716</a>
     </div>
   </div>
 
@@ -136,11 +136,13 @@
         <div class="book-card-3d" onclick="window.jumpToBookPage(1)" title="Bấm vào để mở đọc thử 22 trang">
           <div class="book-badge-ribbon">Bản Đọc Thử</div>
           <img src="assets/images/cover.png" alt="Bìa Sổ Tay Tóm Tắt Toán THPT - Huỳnh Thanh Chí">
-          <div class="interactive-hint-badge">
-            <svg class="ui-ico" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-            <span>Chạm / Kéo để đọc thử</span>
-          </div>
         </div>
+
+        <!-- Nút chạm đọc thử đặt bên ngoài sách (bên dưới) -->
+        <button type="button" class="book-below-hint-btn" onclick="window.jumpToBookPage(1)" title="Bấm để mở đọc thử 22 trang ngay">
+          <svg class="ui-ico" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+          <span>Chạm / Kéo để đọc thử</span>
+        </button>
       </div>
     </div>
   </section>
@@ -369,6 +371,50 @@
         </p>
       </div>
 
+      <!-- Social Proof & Live Sales Counter (Số lượng người đăng ký mua 100-150) -->
+      <div class="sales-proof-card">
+        <div class="proof-top-row">
+          <div class="proof-status-pill">
+            <span class="proof-dot"></span>
+            <span>Đang Săn Sale Trực Tuyến</span>
+          </div>
+          <div class="proof-urgency-badge">
+            <svg class="ui-ico" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            <span>Chỉ còn <b>12 suất</b> ưu đãi 49k kèm Freeship</span>
+          </div>
+        </div>
+
+        <div class="proof-stat-grid">
+          <div class="proof-stat-col">
+            <div class="proof-big-num">
+              <span id="registered-counter">138</span>
+              <small>/ 150</small>
+            </div>
+            <div class="proof-stat-lbl">Học sinh &amp; Phụ huynh đã đăng ký</div>
+          </div>
+
+          <div class="proof-progress-col">
+            <div class="proof-bar-labels">
+              <span>Tiến độ mở bán đợt 1: <b>92%</b></span>
+              <span class="proof-highlight-tag">Giảm sâu đến 51%</span>
+            </div>
+            <div class="proof-bar-track">
+              <div class="proof-bar-fill" style="width: 92%;"></div>
+            </div>
+            <div class="proof-buyer-avatars">
+              <div class="avatar-stack">
+                <span class="avatar-tag" style="background:#e0f2fe;color:#0369a1;">An</span>
+                <span class="avatar-tag" style="background:#fef3c7;color:#92400e;">Hà</span>
+                <span class="avatar-tag" style="background:#dcfce7;color:#166534;">Trí</span>
+                <span class="avatar-tag" style="background:#fae8ff;color:#86198f;">Linh</span>
+                <span class="avatar-tag count">+134</span>
+              </div>
+              <span class="avatar-note">Vừa có phụ huynh tại <b>Hà Nội</b> đăng ký thành công (3 phút trước)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="checkout-grid">
         <!-- FORM CỘT TRÁI -->
         <div class="form-card">
@@ -377,7 +423,7 @@
             <span>Bước 1: Chọn Phiên Bản Sách</span>
           </h3>
 
-          <!-- Package Selector: Áp dụng hiệu ứng chim mồi (Decoy Effect) 50k - 40k - 30k -->
+          <!-- Package Selector: Áp dụng hiệu ứng chim mồi & Săn sale 49k - 39k - 29k -->
           <div class="package-list" role="radiogroup">
             <!-- Gói 1: Combo Trọn Bộ VIP (Khuyên Dùng - Tỷ Lệ Mua Cao Nhất) -->
             <div class="package-item selected" data-package="combo" role="radio" aria-checked="true">
@@ -385,15 +431,16 @@
               <div class="package-info">
                 <div class="package-name">
                   <span>COMBO Toàn Diện (Sách Giấy In + Bản PDF VIP + Video)</span>
-                  <span class="badge-rec">KHUYÊN DÙNG • TIẾT KIỆM 50%</span>
+                  <span class="badge-rec">KHUYÊN DÙNG • GIẢM 51%</span>
                 </div>
                 <div class="package-desc">
                   Sổ tay in màu A5 giấy dày chống lóa + File PDF Full HD bản quyền tra cứu trên điện thoại + Video bài giảng + Bookmark công thức Toán (Miễn phí ship toàn quốc).
                 </div>
               </div>
               <div class="package-price-wrap">
-                <div class="price-cur">50.000 đ</div>
+                <div class="price-cur">49.000 đ</div>
                 <div class="price-old">100.000 đ</div>
+                <div class="discount-tag">Tiết kiệm 51k</div>
               </div>
             </div>
 
@@ -403,14 +450,16 @@
               <div class="package-info">
                 <div class="package-name">
                   <span>Sổ Tay In Giấy Màu A5 Cao Cấp (Bản Cầm Tay)</span>
+                  <span class="badge-discount">-44%</span>
                 </div>
                 <div class="package-desc">
-                  In màu sắc nét, gáy xoắn mở phẳng 360&deg; dễ ghi chú, giao hàng tận nơi. Phí ship bưu điện 20.000 đ (Tổng thanh toán 60.000 đ &ndash; cao hơn gói COMBO).
+                  In màu sắc nét, gáy xoắn mở phẳng 360&deg; dễ ghi chú, giao hàng tận nơi. Phí ship bưu điện 20.000 đ (Tổng thanh toán 59.000 đ &ndash; cao hơn gói COMBO).
                 </div>
               </div>
               <div class="package-price-wrap">
-                <div class="price-cur">40.000 đ</div>
+                <div class="price-cur">39.000 đ</div>
                 <div class="price-old">70.000 đ</div>
+                <div class="discount-tag">Tiết kiệm 31k</div>
               </div>
             </div>
 
@@ -420,14 +469,16 @@
               <div class="package-info">
                 <div class="package-name">
                   <span>Bản Ebook PDF Full HD Bản Quyền (Tra cứu tiện lợi)</span>
+                  <span class="badge-discount">-42%</span>
                 </div>
                 <div class="package-desc">
                   File PDF chất lượng cao gốc vector, phóng to không vỡ nét, xem trên điện thoại / iPad / Laptop, nhận file tức thì qua Zalo &amp; Email (Không có sách in giấy).
                 </div>
               </div>
               <div class="package-price-wrap">
-                <div class="price-cur">30.000 đ</div>
+                <div class="price-cur">29.000 đ</div>
                 <div class="price-old">50.000 đ</div>
+                <div class="discount-tag">Tiết kiệm 21k</div>
               </div>
             </div>
           </div>
@@ -481,11 +532,11 @@
             <div class="summary-box">
               <div class="summary-row">
                 <span>Gói sản phẩm:</span>
-                <span id="summary-pkg-name">COMBO Trọn Bộ VIP (x1)</span>
+                <span id="summary-pkg-name">COMBO Toàn Diện (x1)</span>
               </div>
               <div class="summary-row">
                 <span>Tạm tính:</span>
-                <span id="summary-subtotal">50.000 đ</span>
+                <span id="summary-subtotal">49.000 đ</span>
               </div>
               <div class="summary-row">
                 <span>Phí vận chuyển:</span>
@@ -493,7 +544,7 @@
               </div>
               <div class="summary-row total">
                 <span>TỔNG THANH TOÁN:</span>
-                <b id="summary-total">50.000 đ</b>
+                <b id="summary-total">49.000 đ</b>
               </div>
             </div>
           </form>
@@ -533,7 +584,7 @@
           <!-- QR Code Display Box with Overlays -->
           <div class="qr-display-box" id="qr-display-box">
             <div class="qr-img-frame">
-              <img id="qr-main-image" src="https://img.vietqr.io/image/OCB-0169100000679007-compact2.png?amount=50000&addInfo=PTC882194%200905957716&accountName=HUYNH%20THANH%20CHI" alt="Mã QR Chuyển Khoản Ngân Hàng OCB">
+              <img id="qr-main-image" src="https://img.vietqr.io/image/OCB-0169100000679007-compact2.png?amount=49000&addInfo=PTC882194%200905957716&accountName=HUYNH%20THANH%20CHI" alt="Mã QR Chuyển Khoản Ngân Hàng OCB">
 
               <!-- Expired Overlay (Khi hết 5 phút) -->
               <div class="qr-expired-overlay" id="qr-expired-overlay">
@@ -587,7 +638,7 @@
             <div class="bank-item">
               <span class="bank-lbl">Số tiền:</span>
               <div class="bank-val-wrap">
-                <span id="pay-amount" style="color: var(--ink);">50.000 đ</span>
+                <span id="pay-amount" style="color: var(--ink);">49.000 đ</span>
                 <button type="button" class="copy-mini-btn" data-copy-target="pay-amount" title="Sao chép số tiền">Sao chép</button>
               </div>
             </div>
@@ -661,7 +712,7 @@
 
         <div class="faq-card">
           <h4 class="faq-q">Em có bài toán khó trong sổ tay muốn hỏi Thầy được không?</h4>
-          <p class="faq-a">Hoàn toàn được! Các bạn học sinh khi sở hữu Sổ tay Toán THPT luôn được Thầy Chí trực tiếp hỗ trợ, gợi ý hướng giải và giải đáp thắc mắc qua Zalo cá nhân <b>0905 957 716</b>.</p>
+          <p class="faq-a">Hoàn toàn được! Các bạn học sinh khi sở hữu Sổ tay Toán THPT luôn được Thầy Chí trực tiếp hỗ trợ, gợi ý hướng giải và giải đáp thắc mắc qua Zalo cá nhân <b>090 595 7716</b>.</p>
         </div>
       </div>
     </div>
@@ -680,7 +731,7 @@
           </p>
           <p class="footer-text" style="font-size: 13.5px; opacity: 0.9;">
             &bull; Website chính thức: <a href="https://thanhchi113.github.io/" target="_blank" rel="noopener" style="text-decoration: underline; color: #fff;">thanhchi113.github.io</a><br>
-            &bull; Hotline &amp; Zalo: <b>0905 957 716</b><br>
+            &bull; Hotline &amp; Zalo: <b>090 595 7716</b><br>
             &bull; Tài khoản OCB: <b>0169100000679007 &ndash; HUYNH THANH CHI</b>
           </p>
         </div>
@@ -717,7 +768,7 @@
     <div class="bottom-bar-inner">
       <div class="mobile-price-hint">
         <small>Tổng thanh toán:</small>
-        <b id="mobile-bar-total">50.000 đ</b>
+        <b id="mobile-bar-total">49.000 đ</b>
       </div>
       <div class="bottom-bar-actions">
         <button type="button" class="btn btn-ghost" id="mobile-preview-btn">
@@ -778,7 +829,7 @@
         </div>
         <div style="display: flex; justify-content: space-between; border-top: 1px dashed var(--line); padding-top: 8px; margin-top: 8px; font-size: 15px;">
           <span style="font-weight: 700; color: var(--ink-deep);">Số tiền thanh toán:</span>
-          <b id="modal-total-amt" style="color: var(--ink); font-family: var(--serif); font-size: 17px;">119.000 đ</b>
+          <b id="modal-total-amt" style="color: var(--ink); font-family: var(--serif); font-size: 17px;">49.000 đ</b>
         </div>
       </div>
 
