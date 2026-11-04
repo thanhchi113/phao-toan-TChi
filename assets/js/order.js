@@ -12,13 +12,27 @@
     BANK_ID: 'BIDV',
     BANK_NAME: 'Ngân Hàng Đầu Tư & Phát Triển Việt Nam (BIDV)',
     ACCOUNT_NO: '5801434567',
+    SEPAY_VA_ACCOUNT: '962478SJJ2',
     ACCOUNT_NAME: 'HUYNH THANH CHI',
     HOTLINE_ZALO: '0905957716',
     HOTLINE_DISPLAY: '090 595 7716',
     POLL_INTERVAL_MS: 3000,
-    SEPAY_API_TOKEN: '',
+    GAS_WEBAPP_URL: 'https://script.google.com/macros/s/AKfycbyXFB8UgPDiZXxZtHF6bxGFWe0I3Voc1Ecke1DUi1Jp2P6LeD3Ss1etOKqbOBIctR5YTg/exec',
+    GOOGLE_SHEET_ID: '1dObYu0uf1pdSvYLWDdi45zKK2n67TzfbrfkDuOlsvq0',
+    ALLOW_ALL_ACCESS: true,
+    SEPAY_API_TOKEN: 'SEPAY_GAS_BRIDGE_ACTIVE_5801434567',
     SEPAY_ACCOUNT_NUMBER: '5801434567'
   };
+
+  function getEffectiveQrAccountNo() {
+    return (CONFIG.SEPAY_VA_ACCOUNT || CONFIG.ACCOUNT_NO || '962478SJJ2').trim();
+  }
+
+  function formatDisplayBankAccWithVa() {
+    const raw = (CONFIG.ACCOUNT_NO || '5801434567').trim();
+    const va = getEffectiveQrAccountNo();
+    return va !== raw ? `${va} (TK gốc: ${raw})` : raw;
+  }
 
   // Packages: Áp dụng hiệu ứng chim mồi & Săn sale (49k - 39k - 29k, giảm > 50%)
   const PACKAGES = {
@@ -167,7 +181,10 @@
 
     // Bank Detail Labels
     if (payBankNameEl) payBankNameEl.textContent = CONFIG.BANK_NAME;
-    if (payAccountNoEl) payAccountNoEl.textContent = CONFIG.ACCOUNT_NO;
+    if (payAccountNoEl) {
+      payAccountNoEl.textContent = formatDisplayBankAccWithVa();
+      payAccountNoEl.dataset.copyRaw = getEffectiveQrAccountNo();
+    }
     if (payAccountNameEl) payAccountNameEl.textContent = CONFIG.ACCOUNT_NAME;
     if (payAmountEl) payAmountEl.textContent = formatMoney(total);
     if (payMemoEl) payMemoEl.textContent = memo;
@@ -180,11 +197,12 @@
     updateQrImage(total, memo);
   }
 
-  // Generate / Switch QR code
+  // Generate / Switch QR code (Dùng mã VA SePay 962478SJJ2 để đẩy tiền vào 5801434567 & báo Webhook tức thì)
   function updateQrImage(total, memo) {
     if (!qrImageEl) return;
     const encodedMemo = encodeURIComponent(memo);
-    const qrUrl = `https://img.vietqr.io/image/${CONFIG.BANK_ID}-${CONFIG.ACCOUNT_NO}-compact2.png?amount=${total}&addInfo=${encodedMemo}&accountName=${encodeURIComponent(CONFIG.ACCOUNT_NAME)}`;
+    const qrAcc = getEffectiveQrAccountNo();
+    const qrUrl = `https://img.vietqr.io/image/${CONFIG.BANK_ID}-${qrAcc}-compact2.png?amount=${total}&addInfo=${encodedMemo}&accountName=${encodeURIComponent(CONFIG.ACCOUNT_NAME)}`;
     qrImageEl.src = qrUrl;
     qrImageEl.alt = `VietQR Chuyển khoản ${CONFIG.BANK_ID} ${formatMoney(total)}`;
   }
@@ -262,8 +280,116 @@
   }
 
   // ==========================================================================
-  // AUTO-CHECK TRANSACTION ENGINE (TỰ ĐỘNG QUÉT & KIỂM TRA GIAO DỊCH)
+  // AUTO-CHECK TRANSACTION ENGINE (ĐỐI SOÁT TỰ ĐỘNG SEPAY & BIDV 5801434567)
   // ==========================================================================
+  function getActiveSepayToken() {
+    return (localStorage.getItem('stc_sepay_api_token') || CONFIG.SEPAY_API_TOKEN || '').trim();
+  }
+
+  function matchTransferContent(contentStr, orderId, memo) {
+    if (!contentStr) return false;
+    const normContent = removeVietnameseTones(String(contentStr)).replace(/\s+/g, ' ');
+    const normOrderId = String(orderId || '').toUpperCase().trim();
+    if (normOrderId && normContent.includes(normOrderId)) return true;
+    const firstToken = memo ? String(memo).split(' ')[0].toUpperCase().trim() : '';
+    if (firstToken && firstToken.length >= 6 && normContent.includes(firstToken)) return true;
+    return false;
+  }
+
+  async function verifySepayTransactionLive() {
+    const { total, memo } = calculateTotal();
+    const token = getActiveSepayToken();
+
+    // 1. Đối soát trực tiếp qua Cầu nối Google Apps Script & Sheet SePay_GiaoDich (Đã bật Cho phép toàn bộ truy cập)
+    if (CONFIG.GAS_WEBAPP_URL) {
+      try {
+        const gasRes = await fetch(`${CONFIG.GAS_WEBAPP_URL}?action=getAll&forceSepay=1&t=${Date.now()}`, {
+          method: 'GET',
+          mode: 'cors',
+          cache: 'no-store'
+        });
+        if (gasRes.ok) {
+          const json = await gasRes.json();
+          const serverData = (json && json.data) ? json.data : json;
+          if (serverData && typeof serverData === 'object') {
+            // a) Kiểm tra trên bảng tích hợp SePay_GiaoDich
+            if (Array.isArray(serverData.rawClassSheets)) {
+              for (const sheet of serverData.rawClassSheets) {
+                const rows = Array.isArray(sheet && sheet.values) ? sheet.values : [];
+                if (rows.length < 2) continue;
+                const headers = rows[0].map(h => removeVietnameseTones(String(h || '')).toLowerCase().replace(/[^a-z0-9]/g, ''));
+                const contentIdx = headers.findIndex(h => ['content', 'noidung', 'noidungthanhtoan', 'noidungchuyenkhoan', 'description', 'mota'].includes(h));
+                const codeIdx = headers.findIndex(h => ['code', 'codett', 'codethanhtoan', 'macode'].includes(h));
+                const amtIdx = headers.findIndex(h => ['transferamount', 'sotien', 'amount', 'tienvao', 'amountin'].includes(h));
+                const typeIdx = headers.findIndex(h => ['transfertype', 'loai', 'loaigiaodich'].includes(h));
+
+                if (contentIdx !== -1 && amtIdx !== -1) {
+                  for (let i = rows.length - 1; i >= 1; i--) {
+                    const r = rows[i];
+                    if (!Array.isArray(r)) continue;
+                    const typeStr = typeIdx !== -1 ? removeVietnameseTones(String(r[typeIdx] || '')) : 'TIEN VAO';
+                    if (/RA|OUT|CHI/i.test(typeStr)) continue;
+                    const rawAmt = Number(String(r[amtIdx] || '0').replace(/[^\d.-]/g, '')) || 0;
+                    const rawContent = `${codeIdx !== -1 ? (r[codeIdx] || '') : ''} ${r[contentIdx] || ''}`.trim();
+                    if (rawAmt >= total && matchTransferContent(rawContent, currentOrderId, memo)) {
+                      return true;
+                    }
+                  }
+                }
+              }
+            }
+
+            // b) Kiểm tra trong danh sách transactions đồng bộ từ Webhook SePay
+            if (Array.isArray(serverData.transactions)) {
+              const hitTx = serverData.transactions.find(tx => {
+                if (!tx) return false;
+                const amt = Number(String(tx.amount || tx.amount_in || '0').replace(/[^\d.-]/g, '')) || 0;
+                const desc = `${tx.description || ''} ${tx.transaction_content || ''}`;
+                return amt >= total && matchTransferContent(desc, currentOrderId, memo);
+              });
+              if (hitTx) return true;
+            }
+
+            // c) Kiểm tra thông báo biến động mới nhất lastBankAlertJson
+            if (serverData.settings && serverData.settings.lastBankAlertJson) {
+              try {
+                const alertObj = JSON.parse(serverData.settings.lastBankAlertJson);
+                if (alertObj && Number(alertObj.amount || 0) >= total && matchTransferContent(alertObj.content || '', currentOrderId, memo)) {
+                  return true;
+                }
+              } catch (e) {}
+            }
+          }
+        }
+      } catch (e) {
+        // Tiếp tục dự phòng qua API trực tiếp nếu có
+      }
+    }
+
+    // 2. Đối soát trực tiếp qua User API my.sepay.vn nếu có API Token riêng
+    if (token && token !== 'SEPAY_GAS_BRIDGE_ACTIVE_5801434567') {
+      try {
+        const res = await fetch(`https://my.sepay.vn/userapi/transactions/list?account_number=${CONFIG.SEPAY_ACCOUNT_NUMBER}&limit=20`, {
+          headers: {
+            'Authorization': `Apikey ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const list = data.messages || data.transactions || [];
+          const found = list.find(tx => {
+            const amountMatch = Number(tx.amount_in || 0) >= total;
+            return amountMatch && matchTransferContent(tx.transaction_content || '', currentOrderId, memo);
+          });
+          if (found) return true;
+        }
+      } catch (e) {}
+    }
+
+    return false;
+  }
+
   function startAutoCheckPolling() {
     clearInterval(pollInterval);
     pollCounter = 0;
@@ -276,35 +402,13 @@
 
       pollCounter++;
       if (autoCheckTextEl) {
-        autoCheckTextEl.textContent = 'Hệ thống đang tự động liên kết Webhook đối soát BIDV...';
+        autoCheckTextEl.textContent = 'Đã kết nối SePay • Tự động đối soát BIDV 5801434567 (24/7)...';
       }
 
-      // If user provided SePay API Token, check real bank balance
-      if (CONFIG.SEPAY_API_TOKEN) {
-        try {
-          const { total, memo } = calculateTotal();
-          const res = await fetch(`https://my.sepay.vn/userapi/transactions/list?account_number=${CONFIG.SEPAY_ACCOUNT_NUMBER}&limit=10`, {
-            headers: {
-              'Authorization': `Apikey ${CONFIG.SEPAY_API_TOKEN}`,
-              'Content-Type': 'application/json'
-            }
-          });
-          if (res.ok) {
-            const data = await res.json();
-            const list = data.messages || data.transactions || [];
-            const found = list.find(tx => {
-              const amountMatch = Math.abs(Number(tx.amount_in) - total) < 1;
-              const contentMatch = tx.transaction_content && (tx.transaction_content.includes(currentOrderId) || (memo && tx.transaction_content.includes(memo.split(' ')[0])));
-              return amountMatch && contentMatch;
-            });
-            if (found) {
-              saveCurrentOrder('PAID');
-              onPaymentSuccess();
-            }
-          }
-        } catch (e) {
-          // silent fallback
-        }
+      const isPaid = await verifySepayTransactionLive();
+      if (isPaid && !isPaymentCompleted) {
+        saveCurrentOrder('PAID');
+        onPaymentSuccess();
       }
     }, CONFIG.POLL_INTERVAL_MS);
   }
@@ -653,41 +757,19 @@
 
     if (qrCheckingOverlay) qrCheckingOverlay.classList.add('show');
 
-    // Nếu đã cấu hình SePay API Token, kiểm tra tài khoản thực tế
-    if (CONFIG.SEPAY_API_TOKEN) {
-      try {
-        const { total, memo } = calculateTotal();
-        const res = await fetch(`https://my.sepay.vn/userapi/transactions/list?account_number=${CONFIG.SEPAY_ACCOUNT_NUMBER}&limit=20`, {
-          headers: {
-            'Authorization': `Apikey ${CONFIG.SEPAY_API_TOKEN}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const list = data.messages || data.transactions || [];
-          const found = list.find(tx => {
-            const amountMatch = Math.abs(Number(tx.amount_in) - total) < 1;
-            const contentMatch = tx.transaction_content && (tx.transaction_content.includes(currentOrderId) || (memo && tx.transaction_content.includes(memo.split(' ')[0])));
-            return amountMatch && contentMatch;
-          });
-          if (found) {
-            if (qrCheckingOverlay) qrCheckingOverlay.classList.remove('show');
-            saveCurrentOrder('PAID');
-            onPaymentSuccess();
-            return;
-          }
-        }
-      } catch (e) {
-        console.error('SePay API error:', e);
-      }
+    const isPaid = await verifySepayTransactionLive();
+    if (isPaid) {
+      if (qrCheckingOverlay) qrCheckingOverlay.classList.remove('show');
+      saveCurrentOrder('PAID');
+      onPaymentSuccess();
+      return;
     }
 
     // Khi chưa có tiền vào tài khoản: Báo không thành công
     setTimeout(() => {
       if (qrCheckingOverlay) qrCheckingOverlay.classList.remove('show');
       showPaymentFailedNotice();
-    }, 1400);
+    }, 900);
   }
 
   // Setup Event Listeners
@@ -765,7 +847,7 @@
         const targetId = btn.dataset.copyTarget;
         const targetEl = document.getElementById(targetId);
         if (targetEl) {
-          const text = targetEl.textContent.trim().replace(/\sđ$/, '');
+          const text = targetEl.dataset.copyRaw || targetEl.textContent.trim().replace(/\sđ$/, '');
           copyText(text, `Đã sao chép: ${text}`);
         }
       });
@@ -879,6 +961,8 @@
     const resetOtpCode = document.getElementById('reset-otp-code');
     const resetNewPassword = document.getElementById('reset-new-password');
     const btnSubmitNewPassword = document.getElementById('btn-submit-new-password');
+    const adminSepayTokenInput = document.getElementById('admin-sepay-token-input');
+    const adminSaveSepayBtn = document.getElementById('admin-save-sepay-btn');
 
     let isAdminLoggedIn = false;
 
@@ -913,6 +997,9 @@
     function showDashboard() {
       if (adminGateBox) adminGateBox.style.display = 'none';
       if (adminDashboardBox) adminDashboardBox.style.display = 'block';
+      if (adminSepayTokenInput) {
+        adminSepayTokenInput.value = getActiveSepayToken();
+      }
       renderAdminOrders();
     }
 
@@ -1102,6 +1189,16 @@
     if (adminSearchInput) {
       adminSearchInput.addEventListener('input', (e) => renderAdminOrders(e.target.value));
     }
+    if (adminSaveSepayBtn) {
+      adminSaveSepayBtn.addEventListener('click', () => {
+        const val = adminSepayTokenInput ? adminSepayTokenInput.value.trim() : '';
+        const finalToken = val || 'SEPAY_GAS_BRIDGE_ACTIVE_5801434567';
+        localStorage.setItem('stc_sepay_api_token', finalToken);
+        CONFIG.SEPAY_API_TOKEN = finalToken;
+        if (adminSepayTokenInput) adminSepayTokenInput.value = finalToken;
+        showToast('Đã lưu Token đối soát SePay & kích hoạt toàn quyền truy cập!');
+      });
+    }
 
     // Toggle khung cấp quyền đổi mật khẩu qua email
     if (adminForgotToggle) {
@@ -1127,7 +1224,22 @@
 
         const targetEmail = CONFIG.ADMIN_RECOVERY_EMAIL || 'badaoqn132@gmail.com';
 
-        // Gửi qua webhook FormSubmit đến badaoqn132@gmail.com
+        // 1. Gửi trực tiếp qua Google Apps Script MailApp (badaoqn132@gmail.com)
+        if (CONFIG.GAS_WEBAPP_URL) {
+          try {
+            fetch(CONFIG.GAS_WEBAPP_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({
+                action: 'sendResetEmail',
+                otp: otp,
+                resetUrl: window.location.href
+              })
+            }).catch(() => {});
+          } catch (e) {}
+        }
+
+        // 2. Dự phòng qua webhook FormSubmit đến badaoqn132@gmail.com
         try {
           fetch(`https://formsubmit.co/ajax/${targetEmail}`, {
             method: 'POST',

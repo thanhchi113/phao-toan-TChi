@@ -704,7 +704,7 @@
           <!-- QR Code Display Box with Overlays (Tự động liên kết Webhook theo đơn) -->
           <div class="qr-display-box" id="qr-display-box">
             <div class="qr-img-frame">
-              <img id="qr-main-image" src="https://img.vietqr.io/image/BIDV-5801434567-compact2.png?amount=49000&addInfo=PTC882194%200905957716&accountName=HUYNH%20THANH%20CHI" alt="Mã QR Chuyển Khoản Ngân Hàng BIDV">
+              <img id="qr-main-image" src="https://img.vietqr.io/image/BIDV-962478SJJ2-compact2.png?amount=49000&addInfo=PTC882194%200905957716&accountName=HUYNH%20THANH%20CHI" alt="Mã QR Chuyển Khoản Ngân Hàng BIDV">
 
               <!-- Expired Overlay (Khi hết 5 phút) -->
               <div class="qr-expired-overlay" id="qr-expired-overlay">
@@ -714,7 +714,7 @@
                 <div class="expired-title">Mã QR Đã Hết Hiệu Lực</div>
                 <div class="expired-desc">Phiên thanh toán 5 phút đã kết thúc để đảm bảo an toàn giao dịch.</div>
                 <button type="button" class="btn btn-primary btn-sm" id="btn-renew-qr">
-                  <svg class="ui-ico" viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                  <svg class="ui-ico" viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.36 4.36A9 9 0 0 0 20.49 15"></path></svg>
                   <span>Tạo mã mới (Gia hạn 5 phút)</span>
                 </button>
               </div>
@@ -722,20 +722,20 @@
               <!-- Checking Overlay (Khi đang kiểm tra giao dịch) -->
               <div class="qr-checking-overlay" id="qr-checking-overlay">
                 <div class="checking-spinner"></div>
-                <div class="checking-text">Đang đối soát giao dịch Ngân hàng BIDV...</div>
+                <div class="checking-text">Đang đối soát giao dịch SePay &bull; BIDV...</div>
               </div>
             </div>
 
             <div class="qr-bank-badge">
               <svg class="ui-ico" style="width:15px;height:15px" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-              <span>Ngân hàng BIDV &bull; Napas 247 &bull; VietQR Tự Động</span>
+              <span>Ngân hàng BIDV &bull; SePay Tự Động &bull; VietQR 24/7</span>
             </div>
           </div>
 
           <!-- Live Radar Auto-Check Badge (Tự liên kết Webhook) -->
           <div class="auto-check-badge" id="auto-check-badge">
             <span class="radar-ping"></span>
-            <span id="auto-check-text">Hệ thống đang tự động liên kết Webhook đối soát BIDV...</span>
+            <span id="auto-check-text">Đã kết nối SePay &bull; Tự động đối soát BIDV 5801434567 (24/7)...</span>
           </div>
 
           <!-- Bank Details Breakdown -->
@@ -747,7 +747,7 @@
             <div class="bank-item">
               <span class="bank-lbl">Số tài khoản:</span>
               <div class="bank-val-wrap">
-                <span id="pay-account-no" style="letter-spacing: 0.5px; color: var(--ink);">5801434567</span>
+                <span id="pay-account-no" data-copy-raw="962478SJJ2" style="letter-spacing: 0.5px; color: var(--ink);">962478SJJ2 (TK gốc: 5801434567)</span>
                 <button type="button" class="copy-mini-btn" data-copy-target="pay-account-no" title="Sao chép số tài khoản">Sao chép</button>
               </div>
             </div>
@@ -1058,6 +1058,20 @@
           <div class="admin-stat-card">
             <small>Tổng doanh thu ghi nhận</small>
             <b id="admin-stat-revenue" style="color: var(--ink);">0 đ</b>
+          </div>
+        </div>
+
+        <!-- SePay Live Connection Bar -->
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px;">
+          <div style="display: flex; align-items: center; gap: 8px; color: #166534;">
+            <span class="radar-ping" style="display:inline-block;"></span>
+            <span><b>SePay &bull; BIDV 5801434567 (VA: 962478SJJ2):</b> Đang hoạt động 24/7 (Đã bật Cho phép toàn bộ truy cập)</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px; flex: 1; max-width: 380px;">
+            <input type="text" id="admin-sepay-token-input" class="form-input" placeholder="SePay API Token / Cầu nối tự động..." style="padding: 6px 10px; font-size: 12.5px; height: 32px;">
+            <button type="button" class="btn btn-green btn-sm" id="admin-save-sepay-btn" style="height: 32px; padding: 0 12px; white-space: nowrap;">
+              <span>Lưu Token</span>
+            </button>
           </div>
         </div>
 
