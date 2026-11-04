@@ -19,13 +19,13 @@
     SEPAY_ACCOUNT_NUMBER: '0169100000679007'
   };
 
-  // Packages
+  // Packages: Áp dụng hiệu ứng chim mồi (Decoy Effect) tối ưu chuyển đổi
   const PACKAGES = {
     combo: {
       id: 'combo',
-      name: 'COMBO Toàn Diện (Sách Giấy In + PDF VIP + Video)',
-      price: 119000,
-      oldPrice: 189000,
+      name: 'COMBO Toàn Diện (Sách Giấy In + Bản PDF VIP + Video)',
+      price: 50000,
+      oldPrice: 100000,
       shipping: 0,
       isDigital: false,
       isPhysical: true
@@ -33,8 +33,8 @@
     print: {
       id: 'print',
       name: 'Sổ Tay In Giấy Màu A5 Cao Cấp (Bản Cầm Tay)',
-      price: 89000,
-      oldPrice: 129000,
+      price: 40000,
+      oldPrice: 70000,
       shipping: 20000,
       isDigital: false,
       isPhysical: true
@@ -42,8 +42,8 @@
     ebook: {
       id: 'ebook',
       name: 'Bản Ebook PDF Full HD Bản Quyền (Tra cứu tiện lợi)',
-      price: 49000,
-      oldPrice: 79000,
+      price: 30000,
+      oldPrice: 50000,
       shipping: 0,
       isDigital: true,
       isPhysical: false
@@ -137,7 +137,7 @@
   function calculateTotal() {
     const pkg = PACKAGES[selectedPackage];
     const subtotal = pkg.price * quantity;
-    const shipping = (pkg.shipping > 0 && quantity === 1) ? pkg.shipping : 0;
+    const shipping = pkg.shipping || 0;
     const total = subtotal + shipping;
 
     const phone = phoneInput ? phoneInput.value.replace(/\D/g, '') : '';
@@ -309,7 +309,7 @@
     }, CONFIG.POLL_INTERVAL_MS);
   }
 
-  // Web Audio Bell Chime ("Ting ting! 🔔")
+  // Web Audio Bell Chime (Ting ting!)
   function playSuccessTingTing() {
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -469,10 +469,10 @@
           <div style="margin-bottom: 16px;">
             <a href="assets/pdf/so-tay-toan-thpt.pdf" download="So-Tay-Tom-Tat-Toan-THPT-VIP-Ban-Quyen.pdf" class="download-vip-btn" style="width: 100%; justify-content: center;">
               <svg class="ui-ico" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-              <span>📥 TẢI NGAY SỔ TAY TOÁN THPT (BẢN VIP)</span>
+              <span>Tải Ngay Sổ Tay Toán THPT (Bản VIP)</span>
             </a>
             <div style="font-size:12.5px; color:#15803d; line-height:1.4;">
-              ${pkg.isPhysical ? '✓ Bản sách in giấy màu cao cấp của bạn sẽ được Thầy Huỳnh Thanh Chí đóng gói và gửi Viettel Post / GHTK sớm nhất!' : '✓ Bạn có thể bấm nút trên để tải trực tiếp file PDF bản quyền về điện thoại hoặc máy tính!'}
+              ${pkg.isPhysical ? '<svg class="ui-ico" style="width:13px;height:13px;vertical-align:-2px;color:#15803d;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Bản sách in giấy màu cao cấp của bạn sẽ được Thầy Huỳnh Thanh Chí đóng gói và gửi chuyển phát nhanh sớm nhất!' : '<svg class="ui-ico" style="width:13px;height:13px;vertical-align:-2px;color:#15803d;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Bạn có thể bấm nút trên để tải trực tiếp file PDF bản quyền về điện thoại hoặc máy tính!'}
             </div>
           </div>
 
@@ -486,7 +486,7 @@
       `;
     }
 
-    showToast('🎉 Thanh toán thành công! Đơn hàng đã hoàn tất.');
+    showToast('Thanh toán thành công! Đơn hàng đã hoàn tất.');
   }
 
   // Toast
