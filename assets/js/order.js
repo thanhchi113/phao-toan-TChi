@@ -71,6 +71,8 @@
   let activeQrTab = 'vietqr';
   let currentOrderId = generateOrderId();
   let isPaymentCompleted = false;
+  let isQrGenerated = false;
+  let lockedOrderData = null;
 
   // Timer State (5 phút = 300s)
   let remainingSeconds = CONFIG.COUNTDOWN_SECONDS;
@@ -83,6 +85,8 @@
   }
 
   // DOM Elements
+  const formCardEl = document.querySelector('.form-card');
+  const addressFieldsCard = document.getElementById('address-fields-card');
   const packageItems = document.querySelectorAll('.package-item');
   const qtyMinusBtn = document.getElementById('qty-minus-btn');
   const qtyPlusBtn = document.getElementById('qty-plus-btn');
@@ -101,6 +105,16 @@
   const sumSubtotalEl = document.getElementById('summary-subtotal');
   const sumShippingEl = document.getElementById('summary-shipping');
   const sumTotalEl = document.getElementById('summary-total');
+
+  const createQrActionWrap = document.getElementById('create-qr-action-wrap');
+  const btnCreateQr = document.getElementById('btn-create-qr');
+  const btnCreateQrRight = document.getElementById('btn-create-qr-right');
+  const formLockedBanner = document.getElementById('form-locked-banner');
+  const btnUnlockOrderForm = document.getElementById('btn-unlock-order-form');
+
+  const qrGatePlaceholder = document.getElementById('qr-gate-placeholder');
+  const qrGateAmountEl = document.getElementById('qr-gate-amount');
+  const qrActiveSession = document.getElementById('qr-active-session');
 
   const payBankNameEl = document.getElementById('pay-bank-name');
   const payAccountNoEl = document.getElementById('pay-account-no');
@@ -151,8 +165,12 @@
     return str.replace(/[^a-zA-Z0-9 ]/g, "").toUpperCase().trim();
   }
 
-  // Calculate order totals
+  // Calculate order totals (Trả về dữ liệu đã khóa cứng nếu đang trong phiên quét QR)
   function calculateTotal() {
+    if (isQrGenerated && lockedOrderData) {
+      return lockedOrderData;
+    }
+
     const pkg = PACKAGES[selectedPackage];
     const subtotal = pkg.price * quantity;
     const shipping = pkg.shipping || 0;
@@ -165,11 +183,74 @@
     return { pkg, subtotal, shipping, total, memo };
   }
 
+  function setOrderFormLocked(locked) {
+    if (formCardEl) {
+      formCardEl.classList.toggle('is-locked-order', locked);
+    }
+    const fields = [nameInput, phoneInput, emailInput, provinceInput, districtInput, wardInput, streetInput, noteInput, qtyMinusBtn, qtyPlusBtn];
+    fields.forEach(el => {
+      if (el) el.disabled = locked;
+    });
+    if (createQrActionWrap) createQrActionWrap.style.display = locked ? 'none' : 'block';
+    if (formLockedBanner) formLockedBanner.style.display = locked ? 'flex' : 'none';
+  }
+
+  function handleCreateLockedQr() {
+    if (!validateOrderForm()) return;
+
+    const prevAlert = document.getElementById('payment-fail-alert');
+    if (prevAlert) prevAlert.remove();
+
+    isQrGenerated = false;
+    lockedOrderData = null;
+    currentOrderId = generateOrderId();
+    lockedOrderData = calculateTotal();
+    isQrGenerated = true;
+
+    setOrderFormLocked(true);
+
+    if (qrGatePlaceholder) qrGatePlaceholder.style.display = 'none';
+    if (qrActiveSession) qrActiveSession.style.display = 'block';
+    if (qrExpiredOverlay) qrExpiredOverlay.classList.remove('show');
+
+    updateOrderDisplay();
+    saveCurrentOrder('PENDING');
+    startCountdownTimer();
+    startAutoCheckPolling();
+
+    const paySection = document.getElementById('thanh-toan');
+    if (paySection) paySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    showToast('Đã khóa Số tiền & Nội dung giao dịch và tạo mã QR!');
+  }
+
+  function unlockOrderFormToEdit() {
+    if (isPaymentCompleted) return;
+    isQrGenerated = false;
+    lockedOrderData = null;
+    clearInterval(timerInterval);
+    clearInterval(pollInterval);
+
+    if (qrImageEl) qrImageEl.src = '';
+    if (qrActiveSession) qrActiveSession.style.display = 'none';
+    if (qrGatePlaceholder) qrGatePlaceholder.style.display = 'block';
+
+    setOrderFormLocked(false);
+    updateOrderDisplay();
+
+    const formSection = document.getElementById('dat-mua');
+    if (formSection) formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    showToast('Đã mở khóa thông tin. Điền xong hãy bấm Tạo Mã QR Chuyển Tiền.');
+  }
+
   // Update Summary Table & Payment Card
   function updateOrderDisplay() {
     if (isPaymentCompleted) return;
 
     const { pkg, subtotal, shipping, total, memo } = calculateTotal();
+
+    if (addressFieldsCard) {
+      addressFieldsCard.style.display = pkg.isPhysical ? 'block' : 'none';
+    }
 
     if (sumPkgNameEl) sumPkgNameEl.textContent = `${pkg.name} (x${quantity})`;
     if (sumSubtotalEl) sumSubtotalEl.textContent = formatMoney(subtotal);
@@ -178,8 +259,16 @@
       sumShippingEl.style.color = shipping === 0 ? 'var(--green)' : 'var(--text)';
     }
     if (sumTotalEl) sumTotalEl.textContent = formatMoney(total);
+    if (qrGateAmountEl) qrGateAmountEl.textContent = formatMoney(total);
 
-    // Bank Detail Labels
+    // Update Mobile Price Bar
+    const mobilePriceEl = document.getElementById('mobile-bar-total');
+    if (mobilePriceEl) mobilePriceEl.textContent = formatMoney(total);
+
+    // Chỉ hiển thị & tạo mã QR khi khách đã điền xong thông tin và bấm Tạo Mã QR
+    if (!isQrGenerated) return;
+
+    // Bank Detail Labels (Locked Amount & Memo)
     if (payBankNameEl) payBankNameEl.textContent = CONFIG.BANK_NAME;
     if (payAccountNoEl) {
       payAccountNoEl.textContent = formatDisplayBankAccWithVa();
@@ -189,17 +278,13 @@
     if (payAmountEl) payAmountEl.textContent = formatMoney(total);
     if (payMemoEl) payMemoEl.textContent = memo;
 
-    // Update Mobile Price Bar
-    const mobilePriceEl = document.getElementById('mobile-bar-total');
-    if (mobilePriceEl) mobilePriceEl.textContent = formatMoney(total);
-
     // Update QR Code Image
     updateQrImage(total, memo);
   }
 
-  // Generate / Switch QR code (Dùng mã VA SePay 962478SJJ2 để đẩy tiền vào 5801434567 & báo Webhook tức thì)
+  // Generate / Switch QR code (QR Động EMVCo 010212 khóa cứng Số tiền & Nội dung qua VA SePay 962478SJJ2 -> 5801434567)
   function updateQrImage(total, memo) {
-    if (!qrImageEl) return;
+    if (!qrImageEl || !isQrGenerated) return;
     const encodedMemo = encodeURIComponent(memo);
     const qrAcc = getEffectiveQrAccountNo();
     const qrUrl = `https://img.vietqr.io/image/${CONFIG.BANK_ID}-${qrAcc}-compact2.png?amount=${total}&addInfo=${encodedMemo}&accountName=${encodeURIComponent(CONFIG.ACCOUNT_NAME)}`;
@@ -271,7 +356,12 @@
   }
 
   function renewQrSession() {
+    if (!validateOrderForm()) return;
+    isQrGenerated = false;
+    lockedOrderData = null;
     currentOrderId = generateOrderId();
+    lockedOrderData = calculateTotal();
+    isQrGenerated = true;
     if (qrExpiredOverlay) qrExpiredOverlay.classList.remove('show');
     updateOrderDisplay();
     startCountdownTimer();
@@ -777,6 +867,7 @@
     // Package card selection
     packageItems.forEach(item => {
       item.addEventListener('click', () => {
+        if (isQrGenerated) return;
         packageItems.forEach(i => i.classList.remove('selected'));
         item.classList.add('selected');
         selectedPackage = item.dataset.package;
@@ -787,6 +878,7 @@
     // Quantity buttons
     if (qtyMinusBtn) {
       qtyMinusBtn.addEventListener('click', () => {
+        if (isQrGenerated) return;
         if (quantity > 1) {
           quantity--;
           if (qtyValEl) qtyValEl.textContent = quantity;
@@ -797,6 +889,7 @@
 
     if (qtyPlusBtn) {
       qtyPlusBtn.addEventListener('click', () => {
+        if (isQrGenerated) return;
         if (quantity < 50) {
           quantity++;
           if (qtyValEl) qtyValEl.textContent = quantity;
@@ -805,14 +898,26 @@
       });
     }
 
-    // Input listeners for dynamic QR updates
+    // Input listeners for summary updates before QR is locked
     [nameInput, phoneInput].forEach(inp => {
       if (inp) {
         inp.addEventListener('input', () => {
+          if (isQrGenerated) return;
           updateOrderDisplay();
         });
       }
     });
+
+    // Create Locked QR Buttons (Chỉ cho phép tạo QR sau khi điền xong thông tin)
+    if (btnCreateQr) {
+      btnCreateQr.addEventListener('click', handleCreateLockedQr);
+    }
+    if (btnCreateQrRight) {
+      btnCreateQrRight.addEventListener('click', handleCreateLockedQr);
+    }
+    if (btnUnlockOrderForm) {
+      btnUnlockOrderForm.addEventListener('click', unlockOrderFormToEdit);
+    }
 
     // QR Tabs
     if (qrTabAutoBtn) {
@@ -1327,8 +1432,6 @@
   function init() {
     setupEventListeners();
     updateOrderDisplay();
-    startCountdownTimer();
-    startAutoCheckPolling();
     setupSocialProof();
     setupAdminPortal();
   }

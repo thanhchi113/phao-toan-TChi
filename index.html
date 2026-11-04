@@ -677,6 +677,29 @@
                 <b id="summary-total">49.000 đ</b>
               </div>
             </div>
+
+            <!-- Nút Tạo Mã QR Chuyển Tiền (Điền thông tin xong mới được bấm tạo QR) -->
+            <div class="create-qr-action-wrap" id="create-qr-action-wrap">
+              <button type="button" class="btn btn-primary btn-lg" id="btn-create-qr" style="width: 100%; justify-content: center;">
+                <svg class="ui-ico" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                <span>Xác Nhận Thông Tin &amp; Tạo Mã QR Chuyển Tiền</span>
+              </button>
+              <div class="create-qr-hint">
+                <svg class="ui-ico" style="width:14px;height:14px;color:var(--ink);flex-shrink:0;" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                <span>Điền đầy đủ thông tin nhận sách để hệ thống khóa số tiền &amp; nội dung và tạo mã QR.</span>
+              </div>
+            </div>
+
+            <!-- Trạng thái Đã Khóa Thông Tin Đơn Hàng khi đang quét QR -->
+            <div class="form-locked-banner" id="form-locked-banner" style="display: none;">
+              <div class="form-locked-info">
+                <svg class="ui-ico" style="width:18px;height:18px;color:#15803d;flex-shrink:0;" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                <span><b>Đã khóa thông tin đơn hàng</b> để cố định Số tiền &amp; Nội dung mã QR chuyển khoản.</span>
+              </div>
+              <button type="button" class="btn btn-ghost btn-sm" id="btn-unlock-order-form">
+                <span>Sửa thông tin</span>
+              </button>
+            </div>
           </form>
         </div>
 
@@ -687,117 +710,159 @@
             <span>Bước 3: Quét Mã QR Chuyển Khoản</span>
           </h3>
 
-          <!-- 5-Minute Countdown Timer Box -->
-          <div class="qr-timer-box" id="qr-timer-box">
-            <div class="timer-top">
-              <span class="timer-status-wrap">
-                <span class="timer-dot" id="timer-status-dot"></span>
-                <span id="timer-status-text">Thời gian quét mã còn lại:</span>
-              </span>
-              <span class="timer-countdown" id="timer-countdown-display">05:00</span>
+          <!-- Trạng thái 1: Chưa điền thông tin / Chưa bấm Tạo Mã QR -->
+          <div class="qr-gate-placeholder" id="qr-gate-placeholder">
+            <div class="qr-gate-icon">
+              <svg class="ui-ico" style="width:34px;height:34px;color:var(--ink);" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
             </div>
-            <div class="timer-progress-bar">
-              <div class="timer-progress-fill" id="timer-progress-fill" style="width: 100%;"></div>
-            </div>
-          </div>
-
-          <!-- QR Code Display Box with Overlays (Tự động liên kết Webhook theo đơn) -->
-          <div class="qr-display-box" id="qr-display-box">
-            <div class="qr-img-frame">
-              <img id="qr-main-image" src="https://img.vietqr.io/image/BIDV-962478SJJ2-compact2.png?amount=49000&addInfo=PTC882194%200905957716&accountName=HUYNH%20THANH%20CHI" alt="Mã QR Chuyển Khoản Ngân Hàng BIDV">
-
-              <!-- Expired Overlay (Khi hết 5 phút) -->
-              <div class="qr-expired-overlay" id="qr-expired-overlay">
-                <div class="expired-icon">
-                  <svg class="ui-ico" style="width:36px;height:36px;color:#e53935;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                </div>
-                <div class="expired-title">Mã QR Đã Hết Hiệu Lực</div>
-                <div class="expired-desc">Phiên thanh toán 5 phút đã kết thúc để đảm bảo an toàn giao dịch.</div>
-                <button type="button" class="btn btn-primary btn-sm" id="btn-renew-qr">
-                  <svg class="ui-ico" viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.36 4.36A9 9 0 0 0 20.49 15"></path></svg>
-                  <span>Tạo mã mới (Gia hạn 5 phút)</span>
-                </button>
+            <h4 class="qr-gate-title">Điền Thông Tin Để Tạo Mã QR</h4>
+            <p class="qr-gate-desc">
+              Vui lòng hoàn tất <b>Bước 1 (Chọn gói sách)</b> và <b>Bước 2 (Điền thông tin người nhận)</b>, sau đó bấm nút bên dưới để hệ thống khóa số tiền &amp; nội dung giao dịch và tạo mã QR chuyển tiền.
+            </p>
+            <div class="qr-gate-summary">
+              <div class="qr-gate-row">
+                <span style="color: var(--muted);">Số tiền thanh toán:</span>
+                <b id="qr-gate-amount">49.000 đ</b>
               </div>
-
-              <!-- Checking Overlay (Khi đang kiểm tra giao dịch) -->
-              <div class="qr-checking-overlay" id="qr-checking-overlay">
-                <div class="checking-spinner"></div>
-                <div class="checking-text">Đang đối soát giao dịch SePay &bull; BIDV...</div>
+              <div class="qr-gate-row">
+                <span style="color: var(--muted);">Bảo vệ giao dịch:</span>
+                <span class="qr-lock-pill">
+                  <svg class="ui-ico" style="width:12px;height:12px;" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                  Khóa sửa Số tiền &amp; Nội dung
+                </span>
               </div>
             </div>
-
-            <div class="qr-bank-badge">
-              <svg class="ui-ico" style="width:15px;height:15px" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-              <span>Ngân hàng BIDV &bull; SePay Tự Động &bull; VietQR 24/7</span>
-            </div>
-          </div>
-
-          <!-- Live Radar Auto-Check Badge (Tự liên kết Webhook) -->
-          <div class="auto-check-badge" id="auto-check-badge">
-            <span class="radar-ping"></span>
-            <span id="auto-check-text">Đã kết nối SePay &bull; Tự động đối soát BIDV 5801434567 (24/7)...</span>
-          </div>
-
-          <!-- Bank Details Breakdown -->
-          <div class="bank-detail-list">
-            <div class="bank-item">
-              <span class="bank-lbl">Ngân hàng:</span>
-              <span class="bank-val-wrap" id="pay-bank-name">Ngân Hàng Đầu Tư &amp; Phát Triển Việt Nam (BIDV)</span>
-            </div>
-            <div class="bank-item">
-              <span class="bank-lbl">Số tài khoản:</span>
-              <div class="bank-val-wrap">
-                <span id="pay-account-no" data-copy-raw="962478SJJ2" style="letter-spacing: 0.5px; color: var(--ink);">962478SJJ2 (TK gốc: 5801434567)</span>
-                <button type="button" class="copy-mini-btn" data-copy-target="pay-account-no" title="Sao chép số tài khoản">Sao chép</button>
-              </div>
-            </div>
-            <div class="bank-item">
-              <span class="bank-lbl">Chủ tài khoản:</span>
-              <span class="bank-val-wrap" id="pay-account-name">HUYNH THANH CHI</span>
-            </div>
-            <div class="bank-item">
-              <span class="bank-lbl">Số tiền:</span>
-              <div class="bank-val-wrap">
-                <span id="pay-amount" style="color: var(--ink);">49.000 đ</span>
-                <button type="button" class="copy-mini-btn" data-copy-target="pay-amount" title="Sao chép số tiền">Sao chép</button>
-              </div>
-            </div>
-            <div class="bank-item">
-              <span class="bank-lbl">Nội dung CK:</span>
-              <div class="bank-val-wrap">
-                <span id="pay-memo" style="color: var(--blue);">PTC882194 0905957716</span>
-                <button type="button" class="copy-mini-btn" data-copy-target="pay-memo" title="Sao chép nội dung chuyển khoản">Sao chép</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Action buttons -->
-          <div class="payment-actions">
-            <button type="button" class="btn btn-green btn-lg" id="btn-confirm-payment" style="width: 100%;">
-              <svg class="ui-ico" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-              <span>Kiểm Tra &amp; Hoàn Tất Đơn Tự Động</span>
+            <button type="button" class="btn btn-primary btn-lg" id="btn-create-qr-right" style="width: 100%; justify-content: center;">
+              <svg class="ui-ico" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+              <span>Tạo Mã QR Chuyển Tiền</span>
             </button>
-
-            <div style="display: flex; gap: 8px;">
-              <button type="button" class="btn btn-ghost btn-sm" id="btn-download-qr" style="flex: 1;">
-                <svg class="ui-ico" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                <span>Tải Mã QR</span>
-              </button>
-              <a href="https://zalo.me/0905957716" target="_blank" rel="noopener" class="btn btn-zalo btn-sm" style="flex: 1;">
-                <svg class="ui-ico" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-                <span>Chat Zalo Thầy Chí</span>
-              </a>
-            </div>
           </div>
 
-          <!-- 3 Steps guide -->
-          <div class="steps-guide">
-            <div class="steps-guide-title">3 Bước Quét Mã Đơn Giản:</div>
-            <ol class="steps-list">
-              <li>Mở app Ngân hàng (BIDV, VCB, MB, Techcombank, Momo, ...) trên điện thoại.</li>
-              <li>Chọn <b>Quét mã QR</b> và hướng camera vào mã ở trên.</li>
-              <li>Kiểm tra đúng tên người nhận <b>HUYNH THANH CHI</b> và bấm Chuyển tiền.</li>
-            </ol>
+          <!-- Trạng thái 2: Đã điền thông tin & Tạo Mã QR Động Khóa Số Tiền + Nội Dung -->
+          <div id="qr-active-session" style="display: none;">
+            <!-- 5-Minute Countdown Timer Box -->
+            <div class="qr-timer-box" id="qr-timer-box">
+              <div class="timer-top">
+                <span class="timer-status-wrap">
+                  <span class="timer-dot" id="timer-status-dot"></span>
+                  <span id="timer-status-text">Thời gian quét mã còn lại:</span>
+                </span>
+                <span class="timer-countdown" id="timer-countdown-display">05:00</span>
+              </div>
+              <div class="timer-progress-bar">
+                <div class="timer-progress-fill" id="timer-progress-fill" style="width: 100%;"></div>
+              </div>
+            </div>
+
+            <!-- QR Code Display Box with Overlays (Tự động liên kết Webhook theo đơn) -->
+            <div class="qr-display-box" id="qr-display-box">
+              <div class="qr-img-frame">
+                <img id="qr-main-image" src="" alt="Mã QR Chuyển Khoản Ngân Hàng BIDV">
+
+                <!-- Expired Overlay (Khi hết 5 phút) -->
+                <div class="qr-expired-overlay" id="qr-expired-overlay">
+                  <div class="expired-icon">
+                    <svg class="ui-ico" style="width:36px;height:36px;color:#e53935;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  </div>
+                  <div class="expired-title">Mã QR Đã Hết Hiệu Lực</div>
+                  <div class="expired-desc">Phiên thanh toán 5 phút đã kết thúc để đảm bảo an toàn giao dịch.</div>
+                  <button type="button" class="btn btn-primary btn-sm" id="btn-renew-qr">
+                    <svg class="ui-ico" viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.36 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                    <span>Tạo mã mới (Gia hạn 5 phút)</span>
+                  </button>
+                </div>
+
+                <!-- Checking Overlay (Khi đang kiểm tra giao dịch) -->
+                <div class="qr-checking-overlay" id="qr-checking-overlay">
+                  <div class="checking-spinner"></div>
+                  <div class="checking-text">Đang đối soát giao dịch SePay &bull; BIDV...</div>
+                </div>
+              </div>
+
+              <div class="qr-bank-badge">
+                <svg class="ui-ico" style="width:15px;height:15px" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                <span>Ngân hàng BIDV &bull; QR Động Khóa Số Tiền &amp; Nội Dung</span>
+              </div>
+            </div>
+
+            <!-- Live Radar Auto-Check Badge (Tự liên kết Webhook) -->
+            <div class="auto-check-badge" id="auto-check-badge">
+              <span class="radar-ping"></span>
+              <span id="auto-check-text">Đã kết nối SePay &bull; Tự động đối soát BIDV 5801434567 (24/7)...</span>
+            </div>
+
+            <!-- Locked Notice -->
+            <div class="qr-locked-notice-bar">
+              <svg class="ui-ico" style="width:16px;height:16px;color:#d97706;flex-shrink:0;margin-top:2px;" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              <span><b>Số tiền</b> và <b>Nội dung giao dịch</b> đã được khóa cố định vào mã QR. Khi quét mã trên App Ngân hàng, vui lòng giữ nguyên và bấm Chuyển tiền.</span>
+            </div>
+
+            <!-- Bank Details Breakdown (Locked Amount & Memo) -->
+            <div class="bank-detail-list" style="user-select: none; -webkit-user-select: none;">
+              <div class="bank-item">
+                <span class="bank-lbl">Ngân hàng:</span>
+                <span class="bank-val-wrap" id="pay-bank-name">Ngân Hàng Đầu Tư &amp; Phát Triển Việt Nam (BIDV)</span>
+              </div>
+              <div class="bank-item">
+                <span class="bank-lbl">Số tài khoản:</span>
+                <div class="bank-val-wrap">
+                  <span id="pay-account-no" data-copy-raw="962478SJJ2" style="letter-spacing: 0.5px; color: var(--ink);">962478SJJ2 (TK gốc: 5801434567)</span>
+                </div>
+              </div>
+              <div class="bank-item">
+                <span class="bank-lbl">Chủ tài khoản:</span>
+                <span class="bank-val-wrap" id="pay-account-name">HUYNH THANH CHI</span>
+              </div>
+              <div class="bank-item">
+                <span class="bank-lbl">Số tiền:</span>
+                <div class="bank-val-wrap">
+                  <span id="pay-amount" contenteditable="false" style="color: var(--ink);">49.000 đ</span>
+                  <span class="qr-lock-pill" title="Số tiền đã khóa cố định trong mã QR">
+                    <svg class="ui-ico" style="width:11px;height:11px;" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    Đã khóa
+                  </span>
+                </div>
+              </div>
+              <div class="bank-item">
+                <span class="bank-lbl">Nội dung GD:</span>
+                <div class="bank-val-wrap">
+                  <span id="pay-memo" contenteditable="false" style="color: var(--blue);">PTC882194 0905957716</span>
+                  <span class="qr-lock-pill" title="Nội dung giao dịch đã khóa cố định trong mã QR">
+                    <svg class="ui-ico" style="width:11px;height:11px;" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    Đã khóa
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="payment-actions">
+              <button type="button" class="btn btn-green btn-lg" id="btn-confirm-payment" style="width: 100%;">
+                <svg class="ui-ico" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                <span>Kiểm Tra &amp; Hoàn Tất Đơn Tự Động</span>
+              </button>
+
+              <div style="display: flex; gap: 8px;">
+                <button type="button" class="btn btn-ghost btn-sm" id="btn-download-qr" style="flex: 1;">
+                  <svg class="ui-ico" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  <span>Tải Mã QR</span>
+                </button>
+                <a href="https://zalo.me/0905957716" target="_blank" rel="noopener" class="btn btn-zalo btn-sm" style="flex: 1;">
+                  <svg class="ui-ico" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                  <span>Chat Zalo Thầy Chí</span>
+                </a>
+              </div>
+            </div>
+
+            <!-- 3 Steps guide -->
+            <div class="steps-guide">
+              <div class="steps-guide-title">3 Bước Quét Mã Đơn Giản:</div>
+              <ol class="steps-list">
+                <li>Mở app Ngân hàng (BIDV, VCB, MB, Techcombank, Momo, ...) trên điện thoại.</li>
+                <li>Chọn <b>Quét mã QR</b> và hướng camera vào mã ở trên.</li>
+                <li>Số tiền &amp; Nội dung đã được tự động khóa sẵn, kiểm tra tên <b>HUYNH THANH CHI</b> và bấm Chuyển tiền.</li>
+              </ol>
+            </div>
           </div>
         </div>
       </div>
