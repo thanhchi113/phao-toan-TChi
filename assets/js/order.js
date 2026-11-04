@@ -38,30 +38,33 @@
   const PACKAGES = {
     combo: {
       id: 'combo',
-      name: 'COMBO Toàn Diện (Sách Giấy In + Bản PDF VIP + Kho Đề & Chuyên Đề 12)',
+      name: 'COMBO: Sách, Ebook PDF, Đề GK, CK 10-11-12',
       price: 49000,
       oldPrice: 100000,
       shipping: 0,
+      hasPdf: true,
       isDigital: false,
       isPhysical: true
     },
     print: {
       id: 'print',
-      name: 'Sổ Tay In Giấy Màu A5 Cao Cấp (Bản Cầm Tay)',
+      name: 'COMBO: Sách, Ebook PDF',
       price: 39000,
       oldPrice: 70000,
       shipping: 0,
+      hasPdf: true,
       isDigital: false,
       isPhysical: true
     },
-    ebook: {
-      id: 'ebook',
-      name: 'Bản Ebook PDF Full HD Bản Quyền (Tra cứu tiện lợi)',
+    book_only: {
+      id: 'book_only',
+      name: 'COMBO Chỉ Sách (Sách Giấy In Màu A5)',
       price: 29000,
       oldPrice: 50000,
       shipping: 0,
-      isDigital: true,
-      isPhysical: false
+      hasPdf: false,
+      isDigital: false,
+      isPhysical: true
     }
   };
 
@@ -119,6 +122,7 @@
   const qrGatePlaceholder = document.getElementById('qr-gate-placeholder');
   const qrGateAmountEl = document.getElementById('qr-gate-amount');
   const qrActiveSession = document.getElementById('qr-active-session');
+  const qrSuccessSession = document.getElementById('qr-success-session');
 
   const payBankNameEl = document.getElementById('pay-bank-name');
   const payAccountNoEl = document.getElementById('pay-account-no');
@@ -228,7 +232,10 @@
   }
 
   function unlockOrderFormToEdit() {
-    if (isPaymentCompleted) return;
+    if (isPaymentCompleted) {
+      startNewOrderSession();
+      return;
+    }
     isQrGenerated = false;
     lockedOrderData = null;
     clearInterval(timerInterval);
@@ -236,6 +243,7 @@
 
     if (qrImageEl) qrImageEl.src = '';
     if (qrActiveSession) qrActiveSession.style.display = 'none';
+    if (qrSuccessSession) qrSuccessSession.style.display = 'none';
     if (qrGatePlaceholder) qrGatePlaceholder.style.display = 'block';
 
     setOrderFormLocked(false);
@@ -244,6 +252,33 @@
     const formSection = document.getElementById('dat-mua');
     if (formSection) formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     showToast('Đã mở khóa thông tin. Điền xong hãy bấm Tạo Mã QR Chuyển Tiền.');
+  }
+
+  function startNewOrderSession() {
+    clearInterval(timerInterval);
+    clearInterval(pollInterval);
+    isPaymentCompleted = false;
+    isQrGenerated = false;
+    lockedOrderData = null;
+    currentOrderId = generateOrderId();
+    quantity = 1;
+    if (qtyValEl) qtyValEl.textContent = '1';
+
+    if (qrImageEl) qrImageEl.src = '';
+    if (qrSuccessSession) {
+      qrSuccessSession.style.display = 'none';
+      qrSuccessSession.innerHTML = '';
+    }
+    if (qrActiveSession) qrActiveSession.style.display = 'none';
+    if (qrGatePlaceholder) qrGatePlaceholder.style.display = 'block';
+    if (btnUnlockOrderForm) btnUnlockOrderForm.innerHTML = '<span>Sửa thông tin</span>';
+
+    setOrderFormLocked(false);
+    updateOrderDisplay();
+
+    const formSection = document.getElementById('dat-mua');
+    if (formSection) formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    showToast('Đã tạo đơn hàng mới! Vui lòng chọn gói sách và xác nhận thông tin.');
   }
 
   // Update Summary Table & Payment Card
@@ -609,6 +644,97 @@
     anim();
   }
 
+  // Đóng dấu bản quyền thông tin Mã đơn & Người mua trực tiếp lên từng trang file PDF
+  function replaceAsciiSlotInBuffer(uint8, targetStr, replacementStr) {
+    const clean = String(replacementStr || '')
+      .replace(/[()\\]/g, ' ')
+      .replace(/[^\x20-\x7E]/g, ' ')
+      .slice(0, targetStr.length)
+      .padEnd(targetStr.length, ' ');
+
+    const tLen = targetStr.length;
+    const tBytes = new Uint8Array(tLen);
+    const rBytes = new Uint8Array(tLen);
+    for (let i = 0; i < tLen; i++) {
+      tBytes[i] = targetStr.charCodeAt(i);
+      rBytes[i] = clean.charCodeAt(i);
+    }
+
+    const limit = uint8.length - tLen;
+    for (let i = 0; i <= limit; i++) {
+      if (uint8[i] !== tBytes[0]) continue;
+      let match = true;
+      for (let j = 1; j < tLen; j++) {
+        if (uint8[i + j] !== tBytes[j]) {
+          match = false;
+          break;
+        }
+      }
+      if (match) {
+        for (let j = 0; j < tLen; j++) {
+          uint8[i + j] = rBytes[j];
+        }
+      }
+    }
+  }
+
+  async function downloadWatermarkedPdf(orderData, btnEl) {
+    const origHtml = btnEl ? btnEl.innerHTML : '';
+    try {
+      if (btnEl) {
+        btnEl.disabled = true;
+        btnEl.innerHTML = '<span>Đang đóng dấu bản quyền Mã đơn #' + orderData.orderId + '...</span>';
+      }
+
+      const res = await fetch('assets/pdf/so-tay-toan-thpt.pdf?v=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) throw new Error('PDF fetch failed');
+      const buf = await res.arrayBuffer();
+      const uint8 = new Uint8Array(buf);
+
+      const safeId = removeVietnameseTones(orderData.orderId || 'PTC000000').replace(/\s+/g, '') || 'PTC000000';
+      const safeName = removeVietnameseTones(orderData.name || 'KHACH HANG').slice(0, 26) || 'KHACH HANG';
+      const safePhone = String(orderData.phone || '').replace(/\D/g, '').slice(0, 12) || '0905957716';
+      const safeEmail = String(orderData.email || '').replace(/[^a-zA-Z0-9@._-]/g, '').toUpperCase().slice(0, 34) || 'KHACHHANG';
+
+      const SLOT_TOP   = 'BAN QUYEN LOP TOAN ANH CHI | MA DON: #PTC000000 | NGHIEM CAM SAO CHEP & CHIA SE FILE PDF'.padEnd(90, ' ');
+      const SLOT_BOT   = 'BAN QUYEN RIENG: #PTC000000 | KHACH HANG: NGUYEN VAN A | SDT: 0905957716 | LOP TOAN ANH CHI'.padEnd(96, ' ');
+      const SLOT_DIAG1 = 'BAN QUYEN LOP TOAN ANH CHI - MA DON: #PTC000000'.padEnd(68, ' ');
+      const SLOT_DIAG2 = 'NGUOI MUA: NGUYEN VAN A - SDT: 0905957716 - CAM CHIA SE'.padEnd(68, ' ');
+      const SLOT_META  = '%WM_TRACE:ID=#PTC000000|NAME=NGUYEN VAN A|PHONE=0905957716|EMAIL=LOPTOANANHCHI@GMAIL.COM'.padEnd(120, ' ');
+
+      const newTop   = `BAN QUYEN LOP TOAN ANH CHI | MA DON: #${safeId} | NGHIEM CAM SAO CHEP & CHIA SE FILE PDF`;
+      const newBot   = `BAN QUYEN RIENG: #${safeId} | KHACH HANG: ${safeName} | SDT: ${safePhone} | LOP TOAN ANH CHI`;
+      const newDiag1 = `BAN QUYEN LOP TOAN ANH CHI - MA DON: #${safeId}`;
+      const newDiag2 = `NGUOI MUA: ${safeName} - SDT: ${safePhone} - CAM CHIA SE`;
+      const newMeta  = `%WM_TRACE:ID=#${safeId}|NAME=${safeName}|PHONE=${safePhone}|EMAIL=${safeEmail}`;
+
+      replaceAsciiSlotInBuffer(uint8, SLOT_TOP, newTop);
+      replaceAsciiSlotInBuffer(uint8, SLOT_BOT, newBot);
+      replaceAsciiSlotInBuffer(uint8, SLOT_DIAG1, newDiag1);
+      replaceAsciiSlotInBuffer(uint8, SLOT_DIAG2, newDiag2);
+      replaceAsciiSlotInBuffer(uint8, SLOT_META, newMeta);
+
+      const blob = new Blob([uint8], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `So-Tay-Toan-THPT-Ban-Quyen-${safeId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+      showToast(`Đã tải PDF đóng dấu bản quyền Mã đơn #${safeId}!`);
+    } catch (e) {
+      showToast('Không thể tạo file PDF lúc này, vui lòng thử lại!');
+    } finally {
+      if (btnEl) {
+        btnEl.disabled = false;
+        btnEl.innerHTML = origHtml;
+      }
+    }
+  }
+
   // PAYMENT SUCCESSFUL HANDLER
   function onPaymentSuccess() {
     if (isPaymentCompleted) return;
@@ -629,7 +755,9 @@
       phone: phoneInput ? phoneInput.value.trim() : '0905957716',
       email: emailInput ? emailInput.value.trim() : '',
       address: addr.full,
+      pkgId: pkg.id,
       pkgName: pkg.name,
+      hasPdf: Boolean(pkg.hasPdf),
       quantity,
       total,
       memo,
@@ -639,10 +767,43 @@
 
     saveCurrentOrder('PAID');
 
-    // Transform payment card into Order Completed View
-    const paymentCard = document.querySelector('.payment-card');
-    if (paymentCard) {
-      paymentCard.innerHTML = `
+    if (btnUnlockOrderForm) {
+      btnUnlockOrderForm.innerHTML = '<span>Tạo đơn mới</span>';
+    }
+
+    const deliveryMsg = selectedDelivery === 'pickup'
+      ? '<svg class="ui-ico" style="width:14px;height:14px;vertical-align:-2px;color:#15803d;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Mời bạn ghé nhận sách in trực tiếp tại địa chỉ của Thầy Chí: <b>84/11 Đô Đốc Bảo, TP. Quy Nhơn</b>!'
+      : '<svg class="ui-ico" style="width:14px;height:14px;vertical-align:-2px;color:#15803d;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Bản sách in giấy màu cao cấp của bạn sẽ được Thầy Huỳnh Thanh Chí trực tiếp giao tận nơi tại Quy Nhơn!';
+
+    const pdfDownloadSectionHtml = pkg.hasPdf ? `
+      <div style="margin-bottom: 16px;">
+        <button type="button" id="btn-download-watermarked-pdf" class="download-vip-btn" style="width: 100%; justify-content: center; border: none; cursor: pointer;">
+          <svg class="ui-ico" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          <span>Tải File Sách PDF (Bản Quyền #${orderData.orderId})</span>
+        </button>
+        <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:9px 11px; margin-bottom:10px; font-size:12px; color:#991b1b; line-height:1.45; text-align:left;">
+          <svg class="ui-ico" style="width:13px;height:13px;vertical-align:-2px;color:#dc2626;" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          <b>Bảo vệ bản quyền PDF:</b> File PDF đính kèm đã được đóng dấu mã đơn <b>#${orderData.orderId}</b> (${orderData.name} &bull; ${orderData.phone}) trên từng trang để xác thực chủ sở hữu và phát hiện nguồn chia sẻ trái phép.
+        </div>
+        <div style="font-size:12.5px; color:#15803d; line-height:1.45;">
+          ${deliveryMsg}
+        </div>
+      </div>
+    ` : `
+      <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:12px 14px; margin-bottom:16px; font-size:13px; color:#15803d; line-height:1.5; text-align:left;">
+        ${deliveryMsg}
+        <div style="margin-top:6px; font-size:12px; color:#4b5563;">
+          (Gói <b>COMBO Chỉ Sách</b> chỉ bao gồm sách giấy in màu A5, không đính kèm file Ebook PDF tải xuống).
+        </div>
+      </div>
+    `;
+
+    // Show Order Completed View inside #qr-success-session
+    if (qrGatePlaceholder) qrGatePlaceholder.style.display = 'none';
+    if (qrActiveSession) qrActiveSession.style.display = 'none';
+    if (qrSuccessSession) {
+      qrSuccessSession.style.display = 'block';
+      qrSuccessSession.innerHTML = `
         <div class="order-success-screen">
           <div class="success-check-badge">
             <svg style="width:32px;height:32px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
@@ -663,8 +824,8 @@
               <span style="color:#666;">Số điện thoại:</span>
               <b>${orderData.phone}</b>
             </div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
-              <span style="color:#666;">Gói sản phẩm:</span>
+            <div style="display:flex; justify-content:space-between; margin-bottom:6px; gap:10px;">
+              <span style="color:#666; flex-shrink:0;">Gói sản phẩm:</span>
               <span style="font-weight:600; text-align:right;">${orderData.pkgName}</span>
             </div>
             <div style="display:flex; justify-content:space-between; border-top:1px dashed #bbf7d0; padding-top:8px; margin-top:8px; font-size:15px;">
@@ -673,25 +834,31 @@
             </div>
           </div>
 
-          <!-- Instant Unlock Download VIP -->
-          <div style="margin-bottom: 16px;">
-            <a href="assets/pdf/so-tay-toan-thpt.pdf" download="So-Tay-Tom-Tat-Toan-THPT-VIP-Ban-Quyen.pdf" class="download-vip-btn" style="width: 100%; justify-content: center;">
-              <svg class="ui-ico" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-              <span>Tải Ngay Sổ Tay Toán THPT (Bản VIP)</span>
-            </a>
-            <div style="font-size:12.5px; color:#15803d; line-height:1.4;">
-              ${pkg.isPhysical ? (selectedDelivery === 'pickup' ? '<svg class="ui-ico" style="width:13px;height:13px;vertical-align:-2px;color:#15803d;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Mời bạn ghé nhận sách in trực tiếp tại địa chỉ của Thầy Chí: <b>84/11 Đô Đốc Bảo, TP. Quy Nhơn</b>!' : '<svg class="ui-ico" style="width:13px;height:13px;vertical-align:-2px;color:#15803d;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Bản sách in giấy màu cao cấp của bạn sẽ được Thầy Huỳnh Thanh Chí trực tiếp giao tận nơi tại Quy Nhơn!') : '<svg class="ui-ico" style="width:13px;height:13px;vertical-align:-2px;color:#15803d;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Bạn có thể bấm nút trên để tải trực tiếp file PDF bản quyền về điện thoại hoặc máy tính!'}
-            </div>
-          </div>
+          ${pdfDownloadSectionHtml}
 
-          <div style="display:flex; flex-direction:column; gap:8px;">
-            <a href="https://zalo.me/${CONFIG.HOTLINE_ZALO}?text=${encodeURIComponent(`Chào Thầy Huỳnh Thanh Chí, em đã thanh toán thành công đơn hàng #${orderData.orderId} (${formatMoney(orderData.total)}). Thầy kiểm tra giúp em nhé!`)}" target="_blank" rel="noopener" class="btn btn-zalo btn-sm" style="width:100%;">
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <a href="https://zalo.me/${CONFIG.HOTLINE_ZALO}?text=${encodeURIComponent(`Chào Thầy Huỳnh Thanh Chí, em đã thanh toán thành công đơn hàng #${orderData.orderId} (${orderData.pkgName} - ${formatMoney(orderData.total)}). Thầy kiểm tra giúp em nhé!`)}" target="_blank" rel="noopener" class="btn btn-zalo btn-sm" style="width:100%; justify-content:center;">
               <svg class="ui-ico" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
               <span>Nhắn Zalo Thầy Huỳnh Thanh Chí (${CONFIG.HOTLINE_DISPLAY || '090 595 7716'})</span>
             </a>
+
+            <button type="button" id="btn-start-new-order" class="btn btn-primary btn-lg" style="width:100%; justify-content:center;">
+              <svg class="ui-ico" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              <span>Tạo &amp; Mua Đơn Hàng Mới</span>
+            </button>
           </div>
         </div>
       `;
+
+      const dlPdfBtn = document.getElementById('btn-download-watermarked-pdf');
+      if (dlPdfBtn) {
+        dlPdfBtn.addEventListener('click', () => downloadWatermarkedPdf(orderData, dlPdfBtn));
+      }
+
+      const newOrderBtn = document.getElementById('btn-start-new-order');
+      if (newOrderBtn) {
+        newOrderBtn.addEventListener('click', startNewOrderSession);
+      }
     }
 
     showToast('Thanh toán thành công! Đơn hàng đã hoàn tất.');
