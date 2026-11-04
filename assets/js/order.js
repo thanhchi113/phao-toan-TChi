@@ -9,15 +9,15 @@
   // Config reference
   const CONFIG = window.PAYMENT_CONFIG || {
     COUNTDOWN_SECONDS: 300,
-    BANK_ID: 'OCB',
-    BANK_NAME: 'Ngân Hàng Phương Đông (OCB)',
-    ACCOUNT_NO: '0169100000679007',
+    BANK_ID: 'BIDV',
+    BANK_NAME: 'Ngân Hàng Đầu Tư & Phát Triển Việt Nam (BIDV)',
+    ACCOUNT_NO: '5801434567',
     ACCOUNT_NAME: 'HUYNH THANH CHI',
     HOTLINE_ZALO: '0905957716',
     HOTLINE_DISPLAY: '090 595 7716',
     POLL_INTERVAL_MS: 3000,
     SEPAY_API_TOKEN: '',
-    SEPAY_ACCOUNT_NUMBER: '0169100000679007'
+    SEPAY_ACCOUNT_NUMBER: '5801434567'
   };
 
   // Packages: Áp dụng hiệu ứng chim mồi & Săn sale (49k - 39k - 29k, giảm > 50%)
@@ -54,7 +54,7 @@
   // State
   let selectedPackage = 'combo';
   let quantity = 1;
-  let activeQrTab = 'vietqr'; // 'vietqr' or 'ocb_card'
+  let activeQrTab = 'vietqr';
   let currentOrderId = generateOrderId();
   let isPaymentCompleted = false;
 
@@ -183,15 +183,10 @@
   // Generate / Switch QR code
   function updateQrImage(total, memo) {
     if (!qrImageEl) return;
-    if (activeQrTab === 'vietqr') {
-      const encodedMemo = encodeURIComponent(memo);
-      const qrUrl = `https://img.vietqr.io/image/${CONFIG.BANK_ID}-${CONFIG.ACCOUNT_NO}-compact2.png?amount=${total}&addInfo=${encodedMemo}&accountName=${encodeURIComponent(CONFIG.ACCOUNT_NAME)}`;
-      qrImageEl.src = qrUrl;
-      qrImageEl.alt = `VietQR Chuyển khoản OCB ${formatMoney(total)}`;
-    } else {
-      qrImageEl.src = 'assets/images/qr-card.png';
-      qrImageEl.alt = 'Mã QR Thẻ Ngân hàng OCB Huỳnh Thanh Chí';
-    }
+    const encodedMemo = encodeURIComponent(memo);
+    const qrUrl = `https://img.vietqr.io/image/${CONFIG.BANK_ID}-${CONFIG.ACCOUNT_NO}-compact2.png?amount=${total}&addInfo=${encodedMemo}&accountName=${encodeURIComponent(CONFIG.ACCOUNT_NAME)}`;
+    qrImageEl.src = qrUrl;
+    qrImageEl.alt = `VietQR Chuyển khoản ${CONFIG.BANK_ID} ${formatMoney(total)}`;
   }
 
   // ==========================================================================
@@ -281,7 +276,7 @@
 
       pollCounter++;
       if (autoCheckTextEl) {
-        autoCheckTextEl.textContent = 'Hệ thống đang tự động liên kết Webhook đối soát OCB...';
+        autoCheckTextEl.textContent = 'Hệ thống đang tự động liên kết Webhook đối soát BIDV...';
       }
 
       // If user provided SePay API Token, check real bank balance
@@ -441,7 +436,7 @@
             <svg style="width:32px;height:32px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
           </div>
           <h3 class="success-title">Thanh Toán Thành Công!</h3>
-          <p class="success-sub">Giao dịch đã được hệ thống xác nhận tự động qua Ngân hàng OCB.</p>
+          <p class="success-sub">Giao dịch đã được hệ thống xác nhận tự động qua Ngân hàng BIDV.</p>
 
           <div style="background:#fff; border-radius:12px; padding:16px; margin-bottom:18px; border:1px solid #bbf7d0; text-align:left; font-size:13.5px;">
             <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
@@ -625,7 +620,7 @@
 
   // Báo không thành công khi chưa có tiền vào tài khoản
   function showPaymentFailedNotice() {
-    showToast('Chưa ghi nhận tiền vào tài khoản OCB!');
+    showToast('Chưa ghi nhận tiền vào tài khoản BIDV!');
 
     let noticeEl = document.getElementById('payment-fail-alert');
     if (!noticeEl) {
@@ -639,7 +634,7 @@
       <div style="display:flex; align-items:flex-start; gap:10px;">
         <svg class="ui-ico" style="width:20px;height:20px;color:#dc2626;flex-shrink:0;margin-top:2px;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
         <div>
-          <div style="font-weight:700; color:#b91c1c; font-size:13.5px; margin-bottom:3px;">Chưa Ghi Nhận Tiền Vào Tài Khoản OCB</div>
+          <div style="font-weight:700; color:#b91c1c; font-size:13.5px; margin-bottom:3px;">Chưa Ghi Nhận Tiền Vào Tài Khoản BIDV</div>
           <div style="font-size:12.5px; color:#4b5563; line-height:1.45;">
             Hệ thống ngân hàng chưa nhận được giao dịch khớp với mã đơn <b>#${currentOrderId}</b>. Nếu bạn vừa chuyển tiền, vui lòng đợi 15 &ndash; 30 giây rồi bấm kiểm tra lại, hoặc bấm gửi biên lai qua Zalo Thầy Chí (${CONFIG.HOTLINE_DISPLAY || '090 595 7716'}).
           </div>
@@ -750,7 +745,7 @@
 
     if (qrTabCardBtn) {
       qrTabCardBtn.addEventListener('click', () => {
-        activeQrTab = 'ocb_card';
+        activeQrTab = 'card';
         qrTabCardBtn.classList.add('active');
         if (qrTabAutoBtn) qrTabAutoBtn.classList.remove('active');
         const { total, memo } = calculateTotal();
@@ -783,7 +778,7 @@
         if (!qrImageEl) return;
         const link = document.createElement('a');
         link.href = qrImageEl.src;
-        link.download = `VietQR-OCB-HuynhThanhChi.png`;
+        link.download = `VietQR-BIDV-HuynhThanhChi.png`;
         link.target = '_blank';
         document.body.appendChild(link);
         link.click();
