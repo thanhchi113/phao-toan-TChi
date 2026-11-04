@@ -3771,10 +3771,31 @@ input[type="file"].admin-input-sm {
 }
 
 .hero-title,
-.section-title,
 .full-toc-title,
 .qr-gate-title {
   text-wrap: balance;
+}
+
+.section-head {
+  max-width: 960px;
+}
+
+.section-desc {
+  max-width: 920px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (min-width: 961px) {
+  .section-title {
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 768px) {
+  .desktop-br {
+    display: none;
+  }
 }
 
 .faq-grid {
