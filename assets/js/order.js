@@ -104,7 +104,7 @@
   const emailInput = document.getElementById('order-email');
   const provinceInput = document.getElementById('order-province');
   const districtInput = document.getElementById('order-district');
-  const wardInput = document.getElementById('order-ward');
+  const houseInput = document.getElementById('order-house');
   const streetInput = document.getElementById('order-street');
   const noteInput = document.getElementById('order-note');
 
@@ -195,7 +195,7 @@
     if (formCardEl) {
       formCardEl.classList.toggle('is-locked-order', locked);
     }
-    const fields = [nameInput, phoneInput, emailInput, provinceInput, districtInput, wardInput, streetInput, noteInput, qtyMinusBtn, qtyPlusBtn];
+    const fields = [nameInput, phoneInput, emailInput, provinceInput, districtInput, houseInput, streetInput, noteInput, qtyMinusBtn, qtyPlusBtn];
     fields.forEach(el => {
       if (el) el.disabled = locked;
     });
@@ -917,10 +917,11 @@
 
     const province = 'Bình Định';
     const district = 'TP. Quy Nhơn';
-    const ward = wardInput ? wardInput.value.trim() : '';
+    const house = houseInput ? houseInput.value.trim() : '';
     const street = streetInput ? streetInput.value.trim() : '';
-    const full = [street, ward, district, `${province} (Thầy giao +10.000đ)`].filter(Boolean).join(', ');
-    return { province, district, ward, street, full };
+    const addrParts = [house ? `Số nhà ${house}` : '', street ? `Đường ${street}` : '', district, `${province} (Thầy giao +10.000đ)`].filter(Boolean);
+    const full = addrParts.join(', ');
+    return { province, district, ward: house, street, full };
   }
 
   // Validate Order Form
@@ -949,14 +950,15 @@
 
     const pkg = PACKAGES[selectedPackage];
     if (pkg.isPhysical && selectedDelivery === 'ship_qn') {
-      const addr = getCombinedAddress();
-      if (!addr.ward) {
-        showToast('Vui lòng chọn Phường / Xã tại TP. Quy Nhơn để Thầy giao sách!');
-        if (wardInput) wardInput.focus();
+      const house = houseInput ? houseInput.value.trim() : '';
+      const street = streetInput ? streetInput.value.trim() : '';
+      if (!house) {
+        showToast('Vui lòng nhập Số nhà để Thầy giao sách!');
+        if (houseInput) houseInput.focus();
         return false;
       }
-      if (!addr.street) {
-        showToast('Vui lòng nhập Số nhà, tên đường hoặc hẻm tại Quy Nhơn!');
+      if (!street) {
+        showToast('Vui lòng nhập Tên đường để Thầy giao sách!');
         if (streetInput) streetInput.focus();
         return false;
       }

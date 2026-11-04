@@ -307,7 +307,8 @@
         if (p === currentPage || (isDoublePage && viewMode === 'flip' && (p === currentPage || (currentPage % 2 === 0 && p === currentPage + 1)))) {
           t.classList.add('active');
           if (scrollThumb) {
-            t.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            const targetLeft = t.offsetLeft - (thumbStrip.clientWidth / 2) + (t.clientWidth / 2);
+            thumbStrip.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
           }
         } else {
           t.classList.remove('active');
@@ -507,7 +508,7 @@
     initPageSelect();
     initScrollContainer();
     renderFlipbook();
-    updateUIState();
+    updateUIState(false);
     setupGestures();
     setupEventListeners();
 
