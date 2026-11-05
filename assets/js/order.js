@@ -93,6 +93,8 @@
   let timerInterval = null;
   let pollInterval = null;
   let pollCounter = 0;
+  let isCheckingSepay = false;
+  let isReconcilingServer = false;
 
   function generateOrderId() {
     return 'PTC' + Math.floor(100000 + Math.random() * 900000);
@@ -177,7 +179,7 @@
     str = str.replace(/À|Á|Ạ|Ả|Ã|Â|Ầ|Ấ|Ậ|Ẩ|Ẫ|Ă|Ằ|Ắ|Ặ|Ẳ|Ẵ/g, "A");
     str = str.replace(/È|É|Ẹ|Ẻ|Ẽ|Ê|Ề|Ế|Ệ|Ể|Ễ/g, "E");
     str = str.replace(/Ì|Í|Ị|Ỉ|Ĩ/g, "I");
-    str = str.replace(/Ò|Ó|Ỏ|Õ|Ô|Ồ|Ố|Ộ|Ổ|Ỗ|Ơ|Ờ|Ớ|Ợ|Ở|Ỡ/g, "O");
+    str = str.replace(/Ò|Ó|Ọ|Ỏ|Õ|Ô|Ồ|Ố|Ộ|Ổ|Ỗ|Ơ|Ờ|Ớ|Ợ|Ở|Ỡ/g, "O");
     str = str.replace(/Ù|Ú|Ụ|Ủ|Ũ|Ư|Ừ|Ứ|Ự|Ử|Ữ/g, "U");
     str = str.replace(/Ỳ|Ý|Ỵ|Ỷ|Ỹ/g, "Y");
     str = str.replace(/Đ/g, "D");
@@ -431,13 +433,14 @@
     isQrGenerated = true;
     if (qrExpiredOverlay) qrExpiredOverlay.classList.remove('show');
     updateOrderDisplay();
+    saveCurrentOrder('PENDING');
     startCountdownTimer();
     startAutoCheckPolling();
     showToast('Đã tạo mã QR mới có hiệu lực trong 5 phút!');
   }
 
   // ==========================================================================
-  // AUTO-CHECK TRANSACTION ENGINE (ĐỐI SOÁT TỰ ĐỘNG SEPAY & BIDV 5801434567)
+  // AUTO-CHECK TRANSACTION ENGINE (ĐỐI SOÁT TỰ ĐỘNG 24/7 QUA SUPABASE & SEPAY)
   // ==========================================================================
   function getActiveSepayToken() {
     return (localStorage.getItem('stc_sepay_api_token') || CONFIG.SEPAY_API_TOKEN || '').trim();
@@ -446,84 +449,84 @@
   function matchTransferContent(contentStr, orderId, memo) {
     if (!contentStr) return false;
     const normContent = removeVietnameseTones(String(contentStr)).replace(/\s+/g, ' ');
+    const compactContent = normContent.replace(/\s+/g, '');
     const normOrderId = String(orderId || '').toUpperCase().trim();
-    if (normOrderId && normContent.includes(normOrderId)) return true;
+    if (normOrderId && (normContent.includes(normOrderId) || compactContent.includes(normOrderId))) return true;
     const firstToken = memo ? String(memo).split(' ')[0].toUpperCase().trim() : '';
-    if (firstToken && firstToken.length >= 6 && normContent.includes(firstToken)) return true;
+    if (firstToken && firstToken.length >= 6 && (normContent.includes(firstToken) || compactContent.includes(firstToken))) return true;
     return false;
   }
 
-  async function verifySepayTransactionLive() {
-    const { total, memo } = calculateTotal();
-    const token = getActiveSepayToken();
-
-    // 1. Đối soát trực tiếp qua Cầu nối Google Apps Script & Sheet SePay_GiaoDich (Đã bật Cho phép toàn bộ truy cập)
-    if (CONFIG.GAS_WEBAPP_URL) {
-      try {
-        const gasRes = await fetch(`${CONFIG.GAS_WEBAPP_URL}?action=getAll&forceSepay=1&t=${Date.now()}`, {
-          method: 'GET',
-          mode: 'cors',
+  async function fetchOrderStateFromSupabase(orderId) {
+    if (!orderId) return null;
+    try {
+      const res = await fetch(
+        `${SUPABASE_CFG.url}/rest/v1/so_tay_orders?order_id=eq.${encodeURIComponent(orderId)}&select=order_id,status,watermarked_pdf_path,watermarked_pdf_url,email_sent&limit=1`,
+        {
+          headers: getSupabaseHeaders({ 'Accept': 'application/json' }),
           cache: 'no-store'
-        });
-        if (gasRes.ok) {
-          const json = await gasRes.json();
-          const serverData = (json && json.data) ? json.data : json;
-          if (serverData && typeof serverData === 'object') {
-            // a) Kiểm tra trên bảng tích hợp SePay_GiaoDich
-            if (Array.isArray(serverData.rawClassSheets)) {
-              for (const sheet of serverData.rawClassSheets) {
-                const rows = Array.isArray(sheet && sheet.values) ? sheet.values : [];
-                if (rows.length < 2) continue;
-                const headers = rows[0].map(h => removeVietnameseTones(String(h || '')).toLowerCase().replace(/[^a-z0-9]/g, ''));
-                const contentIdx = headers.findIndex(h => ['content', 'noidung', 'noidungthanhtoan', 'noidungchuyenkhoan', 'description', 'mota'].includes(h));
-                const codeIdx = headers.findIndex(h => ['code', 'codett', 'codethanhtoan', 'macode'].includes(h));
-                const amtIdx = headers.findIndex(h => ['transferamount', 'sotien', 'amount', 'tienvao', 'amountin'].includes(h));
-                const typeIdx = headers.findIndex(h => ['transfertype', 'loai', 'loaigiaodich'].includes(h));
-
-                if (contentIdx !== -1 && amtIdx !== -1) {
-                  for (let i = rows.length - 1; i >= 1; i--) {
-                    const r = rows[i];
-                    if (!Array.isArray(r)) continue;
-                    const typeStr = typeIdx !== -1 ? removeVietnameseTones(String(r[typeIdx] || '')) : 'TIEN VAO';
-                    if (/RA|OUT|CHI/i.test(typeStr)) continue;
-                    const rawAmt = Number(String(r[amtIdx] || '0').replace(/[^\d.-]/g, '')) || 0;
-                    const rawContent = `${codeIdx !== -1 ? (r[codeIdx] || '') : ''} ${r[contentIdx] || ''}`.trim();
-                    if (rawAmt >= total && matchTransferContent(rawContent, currentOrderId, memo)) {
-                      return true;
-                    }
-                  }
-                }
-              }
-            }
-
-            // b) Kiểm tra trong danh sách transactions đồng bộ từ Webhook SePay
-            if (Array.isArray(serverData.transactions)) {
-              const hitTx = serverData.transactions.find(tx => {
-                if (!tx) return false;
-                const amt = Number(String(tx.amount || tx.amount_in || '0').replace(/[^\d.-]/g, '')) || 0;
-                const desc = `${tx.description || ''} ${tx.transaction_content || ''}`;
-                return amt >= total && matchTransferContent(desc, currentOrderId, memo);
-              });
-              if (hitTx) return true;
-            }
-
-            // c) Kiểm tra thông báo biến động mới nhất lastBankAlertJson
-            if (serverData.settings && serverData.settings.lastBankAlertJson) {
-              try {
-                const alertObj = JSON.parse(serverData.settings.lastBankAlertJson);
-                if (alertObj && Number(alertObj.amount || 0) >= total && matchTransferContent(alertObj.content || '', currentOrderId, memo)) {
-                  return true;
-                }
-              } catch (e) {}
-            }
-          }
         }
-      } catch (e) {
-        // Tiếp tục dự phòng qua API trực tiếp nếu có
+      );
+      if (!res.ok) return null;
+      const rows = await res.json();
+      return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async function triggerServerSepayReconcile(orderId, forceAll = false) {
+    if (isReconcilingServer && !forceAll) return null;
+    isReconcilingServer = true;
+    try {
+      const res = await fetch(SUPABASE_CFG.edgeFnReconcile, {
+        method: 'POST',
+        headers: getSupabaseHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ orderId: orderId || '', forceAll: Boolean(forceAll) })
+      });
+      if (!res.ok) return null;
+      const json = await res.json();
+      if (json && json.targetOrder && json.targetOrder.paid) {
+        return {
+          order_id: json.targetOrder.orderId || orderId,
+          status: 'Đã thanh toán',
+          watermarked_pdf_url: json.targetOrder.watermarkedPdfUrl || '',
+          email_sent: Boolean(json.targetOrder.emailSent)
+        };
+      }
+      return null;
+    } catch (e) {
+      return null;
+    } finally {
+      isReconcilingServer = false;
+    }
+  }
+
+  async function verifySepayTransactionLive(opts = {}) {
+    const manual = Boolean(opts.manual);
+    const shouldCallReconcile = Boolean(manual || opts.reconcile !== false);
+
+    // 1. Kiểm tra siêu tốc (<150ms) trạng thái đơn trên Supabase Cloud (do Cron ngầm hoặc Webhook đã chốt)
+    const fastRow = await fetchOrderStateFromSupabase(currentOrderId);
+    if (fastRow && fastRow.status === 'Đã thanh toán') {
+      return fastRow;
+    }
+
+    // 2. Gọi Edge Function đối soát SePay trên máy chủ Supabase (không bị nghẽn/treo trình duyệt)
+    if (shouldCallReconcile) {
+      const reconciledRow = await triggerServerSepayReconcile(currentOrderId, manual);
+      if (reconciledRow && reconciledRow.status === 'Đã thanh toán') {
+        return reconciledRow;
+      }
+      const afterRow = await fetchOrderStateFromSupabase(currentOrderId);
+      if (afterRow && afterRow.status === 'Đã thanh toán') {
+        return afterRow;
       }
     }
 
-    // 2. Đối soát trực tiếp qua User API my.sepay.vn nếu có API Token riêng
+    // 3. Dự phòng trực tiếp qua User API my.sepay.vn nếu Admin cấu hình API Token riêng
+    const { total, memo } = calculateTotal();
+    const token = getActiveSepayToken();
     if (token && token !== 'SEPAY_GAS_BRIDGE_ACTIVE_5801434567') {
       try {
         const res = await fetch(`https://my.sepay.vn/userapi/transactions/list?account_number=${CONFIG.SEPAY_ACCOUNT_NUMBER}&limit=20`, {
@@ -539,34 +542,54 @@
             const amountMatch = Number(tx.amount_in || 0) >= total;
             return amountMatch && matchTransferContent(tx.transaction_content || '', currentOrderId, memo);
           });
-          if (found) return true;
+          if (found) {
+            return { order_id: currentOrderId, status: 'Đã thanh toán', watermarked_pdf_url: '', email_sent: false };
+          }
         }
       } catch (e) {}
     }
 
-    return false;
+    return null;
+  }
+
+  async function runSinglePollTick(forceReconcile = false) {
+    if (isPaymentCompleted || !isQrGenerated || isCheckingSepay) return;
+    // Khi hết 5 phút hiển thị QR, vẫn kiểm tra thưa mỗi 9s đề phòng khách vừa quét chuyển tiền sát giờ
+    if (!forceReconcile && remainingSeconds <= 0 && pollCounter % 3 !== 0) {
+      pollCounter++;
+      return;
+    }
+
+    isCheckingSepay = true;
+    pollCounter++;
+    try {
+      if (autoCheckTextEl && remainingSeconds > 0) {
+        autoCheckTextEl.textContent = 'Đã kết nối SePay Cloud • Tự động đối soát & gửi Mail 24/7...';
+      }
+      const shouldReconcile = forceReconcile || (pollCounter % 2 === 1);
+      const paidRow = await verifySepayTransactionLive({ manual: forceReconcile, reconcile: shouldReconcile });
+      if (paidRow && !isPaymentCompleted) {
+        onPaymentSuccess(paidRow);
+      }
+    } finally {
+      isCheckingSepay = false;
+    }
   }
 
   function startAutoCheckPolling() {
     clearInterval(pollInterval);
     pollCounter = 0;
+    isCheckingSepay = false;
 
-    pollInterval = setInterval(async () => {
-      if (isPaymentCompleted || remainingSeconds <= 0) {
+    // Kích hoạt đối soát ngay lập tức không cần đợi chu kỳ đầu
+    setTimeout(() => runSinglePollTick(true), 800);
+
+    pollInterval = setInterval(() => {
+      if (isPaymentCompleted || !isQrGenerated) {
         clearInterval(pollInterval);
         return;
       }
-
-      pollCounter++;
-      if (autoCheckTextEl) {
-        autoCheckTextEl.textContent = 'Đã kết nối SePay • Tự động đối soát BIDV 5801434567 (24/7)...';
-      }
-
-      const isPaid = await verifySepayTransactionLive();
-      if (isPaid && !isPaymentCompleted) {
-        saveCurrentOrder('PAID');
-        onPaymentSuccess();
-      }
+      runSinglePollTick(false);
     }, CONFIG.POLL_INTERVAL_MS);
   }
 
@@ -666,7 +689,8 @@
     anonKey: CONFIG.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpeXFkcXVjcXBsaWZjdnVrd3VsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg0MzQyNTYsImV4cCI6MjEwNDAxMDI1Nn0.QFVahkLpgPklc5rQZnskLY1W5913nZ6Vn80T_As-he0',
     bucket: CONFIG.SUPABASE_BUCKET || 'so-tay-toan-pdfs',
     defaultMasterPath: CONFIG.SUPABASE_DEFAULT_MASTER_PATH || 'master/so-tay-toan-thpt-master.pdf',
-    edgeFnSendPdf: CONFIG.SUPABASE_EDGE_FN_SEND_PDF || 'https://uiyqdqucqplifcvukwul.supabase.co/functions/v1/send-order-pdf'
+    edgeFnSendPdf: CONFIG.SUPABASE_EDGE_FN_SEND_PDF || 'https://uiyqdqucqplifcvukwul.supabase.co/functions/v1/send-order-pdf',
+    edgeFnReconcile: CONFIG.SUPABASE_EDGE_FN_RECONCILE || 'https://uiyqdqucqplifcvukwul.supabase.co/functions/v1/sepay-reconcile'
   };
 
   function getSupabaseHeaders(extra = {}) {
@@ -754,12 +778,14 @@
         total_amount: Number(orderObj.total || 0),
         memo: String(orderObj.memo || ''),
         status: String(orderObj.status || 'Chờ thanh toán'),
-        watermarked_pdf_path: String(orderObj.watermarkedPdfPath || ''),
-        watermarked_pdf_url: String(orderObj.watermarkedPdfUrl || ''),
-        email_sent: Boolean(orderObj.emailSent),
-        email_sent_at: orderObj.emailSentAt || null,
         updated_at: new Date().toISOString()
       };
+      if (orderObj.watermarkedPdfPath) row.watermarked_pdf_path = String(orderObj.watermarkedPdfPath);
+      if (orderObj.watermarkedPdfUrl) row.watermarked_pdf_url = String(orderObj.watermarkedPdfUrl);
+      if (orderObj.emailSent === true) {
+        row.email_sent = true;
+        row.email_sent_at = orderObj.emailSentAt || new Date().toISOString();
+      }
       await fetch(`${SUPABASE_CFG.url}/rest/v1/so_tay_orders?on_conflict=order_id`, {
         method: 'POST',
         headers: getSupabaseHeaders({
@@ -992,11 +1018,13 @@
     const personalPdfUrl = `${baseUrl}?dl_pdf=1&oid=${encodeURIComponent(oid)}&name=${encodeURIComponent(orderData.name)}&phone=${encodeURIComponent(orderData.phone)}&email=${encodeURIComponent(orderData.email)}`;
     const cloudPdfUrl = pdfPayload.supabasePdfUrl || personalPdfUrl;
     const isReplacement = Boolean(opts.isReplacement);
+    const forceResend = Boolean(opts.forceResend || opts.isReplacement);
     const versionNote = opts.versionNote || '';
 
-    // 1. Gửi tự động qua Supabase Edge Function (send-order-pdf) kết nối trực tiếp Supabase Storage + Resend + Google Apps Script
+    let smtpOk = false;
+    let finalCloudUrl = cloudPdfUrl;
     try {
-      fetch(SUPABASE_CFG.edgeFnSendPdf, {
+      const res = await fetch(SUPABASE_CFG.edgeFnSendPdf, {
         method: 'POST',
         headers: getSupabaseHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
@@ -1004,50 +1032,47 @@
           name: orderData.name,
           phone: orderData.phone,
           email: orderData.email,
+          pkgId: orderData.pkgId || 'combo_12',
           pkgName: orderData.pkgName || 'Sổ Tay Toán THPT',
+          total: Number(orderData.total || 0),
           totalFormatted: formatMoney(orderData.total || 0),
           supabasePdfUrl: cloudPdfUrl,
           personalPdfUrl: personalPdfUrl,
           fileName: pdfPayload.fileName,
           isReplacement: isReplacement,
-          versionNote: versionNote,
-          gasWebappUrl: CONFIG.GAS_WEBAPP_URL || ''
+          forceResend: forceResend,
+          versionNote: versionNote
         })
-      }).catch(() => {});
-    } catch (e) {}
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && json && json.ok && json.smtpSent) {
+        smtpOk = true;
+        if (json.supabasePdfUrl) finalCloudUrl = json.supabasePdfUrl;
+      }
+    } catch (e) {
+      smtpOk = false;
+    }
 
-    // 2. Gửi song song qua cổng Email tự động kèm link file PDF đóng dấu bản quyền trên Supabase Cloud
-    try {
-      fetch(`https://formsubmit.co/ajax/${orderData.email}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({
-          _subject: isReplacement
-            ? `[Lớp Toán Anh Chí] File PDF Thay Thế / Bản Đầy Đủ Chi Tiết - Mã Đơn #${oid}`
-            : `[Lớp Toán Anh Chí] File PDF Bản Quyền Sổ Tay Toán THPT - Mã Đơn #${oid}`,
-          _cc: 'badaoqn132@gmail.com',
-          ma_don_hang: `#${oid}`,
-          khach_hang: orderData.name,
-          so_dien_thoai: orderData.phone,
-          email_nhan_file: orderData.email,
-          goi_san_pham: orderData.pkgName || 'Sổ Tay Toán THPT',
-          ghi_chu_phien_ban: versionNote || 'Bản chuẩn đóng dấu bản quyền trên Supabase Cloud',
-          link_tai_file_pdf_supabase_cloud: cloudPdfUrl,
-          link_tai_du_phong: personalPdfUrl,
-          ghi_chu_ban_quyen: `File PDF của bạn đã được đóng dấu bản quyền Mã đơn #${oid} (${orderData.name} - ${orderData.phone}) và lưu trữ trên Supabase Cloud. Bấm vào link trên để tải file bất kỳ lúc nào.`
-        })
-      }).catch(() => {});
-    } catch (e) {}
+    if (!smtpOk) {
+      if (statusBox) {
+        statusBox.innerHTML = `
+          <svg class="ui-ico" style="width:14px;height:14px;vertical-align:-2px;color:#15803d;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          <b>Đã tải file PDF bản quyền #${oid}:</b> Hệ thống đám mây sẽ tự động gửi bản sao vào hộp thư <b>${orderData.email}</b> trong ít giây tới.
+        `;
+      }
+      return false;
+    }
 
-    // Cập nhật trạng thái đã lưu PDF Supabase & gửi Email vào CSDL đơn hàng
+    // Cập nhật trạng thái đã lưu PDF Supabase & gửi Email thành công vào CSDL đơn hàng
     try {
+      const sentIso = new Date().toISOString();
       const orders = JSON.parse(localStorage.getItem('stc_admin_orders_db') || '[]');
       const idx = orders.findIndex(o => o.id === oid);
       if (idx >= 0) {
         orders[idx].watermarkedPdfPath = pdfPayload.supabaseStoragePath;
-        orders[idx].watermarkedPdfUrl = cloudPdfUrl;
+        orders[idx].watermarkedPdfUrl = finalCloudUrl;
         orders[idx].emailSent = true;
-        orders[idx].emailSentAt = new Date().toISOString();
+        orders[idx].emailSentAt = sentIso;
         localStorage.setItem('stc_admin_orders_db', JSON.stringify(orders));
         upsertOrderToSupabase(orders[idx]);
       } else {
@@ -1064,9 +1089,9 @@
           memo: orderData.memo || '',
           status: 'Đã thanh toán',
           watermarkedPdfPath: pdfPayload.supabaseStoragePath,
-          watermarkedPdfUrl: cloudPdfUrl,
+          watermarkedPdfUrl: finalCloudUrl,
           emailSent: true,
-          emailSentAt: new Date().toISOString()
+          emailSentAt: sentIso
         });
       }
     } catch (e) {}
@@ -1074,7 +1099,7 @@
     if (statusBox) {
       statusBox.innerHTML = `
         <svg class="ui-ico" style="width:14px;height:14px;vertical-align:-2px;color:#15803d;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
-        <b>Đã lưu trên Supabase &amp; tự động gửi Email:</b> File PDF đóng dấu bản quyền Mã đơn <b>#${oid}</b> đã được lưu trên Supabase Cloud, tự động tải xuống và gửi tới <b>${orderData.email}</b>!
+        <b>Đã lưu trên Supabase &amp; gửi Email thành công:</b> File PDF đóng dấu bản quyền Mã đơn <b>#${oid}</b> đã được đính kèm &amp; gửi trực tiếp tới <b>${orderData.email}</b>!
       `;
     }
     return true;
@@ -1095,8 +1120,12 @@
       }
 
       if (opts.autoSendEmail && orderData.email) {
-        await sendWatermarkedPdfToEmail(orderData, payload, opts);
-        showToast(`Đã lưu Supabase & gửi PDF bản quyền #${payload.safeId} về ${orderData.email}!`);
+        const sent = await sendWatermarkedPdfToEmail(orderData, payload, opts);
+        if (sent) {
+          showToast(`Đã gửi PDF bản quyền #${payload.safeId} trực tiếp về ${orderData.email}!`);
+        } else {
+          showToast(`Đã tải PDF #${payload.safeId}! Máy chủ đang gửi tiếp về ${orderData.email}.`);
+        }
       } else {
         showToast(`Đã tạo & tải PDF đóng dấu bản quyền Mã đơn #${payload.safeId}!`);
       }
@@ -1113,12 +1142,13 @@
   }
 
   // PAYMENT SUCCESSFUL HANDLER
-  function onPaymentSuccess() {
+  function onPaymentSuccess(serverRow = null) {
     if (isPaymentCompleted) return;
     isPaymentCompleted = true;
 
     clearInterval(timerInterval);
     clearInterval(pollInterval);
+    if (qrExpiredOverlay) qrExpiredOverlay.classList.remove('show');
 
     // Audio & Confetti
     playSuccessTingTing();
@@ -1148,6 +1178,7 @@
       btnUnlockOrderForm.innerHTML = '<span>Tạo đơn mới</span>';
     }
 
+    const serverAlreadyEmailed = Boolean(serverRow && serverRow.email_sent);
     const deliveryMsg = selectedDelivery === 'pickup'
       ? '<svg class="ui-ico" style="width:14px;height:14px;vertical-align:-2px;color:#15803d;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Mời bạn ghé nhận sách in trực tiếp tại địa chỉ của Thầy Chí: <b>84/11 Đô Đốc Bảo, TP. Quy Nhơn</b>!'
       : '<svg class="ui-ico" style="width:14px;height:14px;vertical-align:-2px;color:#15803d;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Bản sách in giấy màu cao cấp của bạn sẽ được Thầy Huỳnh Thanh Chí trực tiếp giao tận nơi tại Quy Nhơn!';
@@ -1160,7 +1191,9 @@
         </button>
         <div id="email-send-status-box" style="background:#f0fdf4; border:1px solid #86efac; border-radius:8px; padding:9px 11px; margin-bottom:8px; font-size:12px; color:#166534; line-height:1.45; text-align:left;">
           <svg class="ui-ico" style="width:13px;height:13px;vertical-align:-2px;color:#15803d;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
-          Đang tự động tải xuống &amp; gửi file PDF đóng dấu bản quyền Mã đơn <b>#${orderData.orderId}</b> về email <b>${orderData.email}</b>...
+          ${serverAlreadyEmailed
+            ? `<b>Đã tự động gửi Email thành công:</b> File PDF đóng dấu bản quyền Mã đơn <b>#${orderData.orderId}</b> đã được đính kèm &amp; gửi trực tiếp tới <b>${orderData.email}</b>!`
+            : `Đang tự động tải xuống &amp; gửi file PDF đóng dấu bản quyền Mã đơn <b>#${orderData.orderId}</b> về email <b>${orderData.email}</b>...`}
         </div>
         <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:9px 11px; margin-bottom:10px; font-size:12px; color:#991b1b; line-height:1.45; text-align:left;">
           <svg class="ui-ico" style="width:13px;height:13px;vertical-align:-2px;color:#dc2626;" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
@@ -1241,9 +1274,9 @@
         newOrderBtn.addEventListener('click', startNewOrderSession);
       }
 
-      // Khi thanh toán thành công và gói có kèm PDF + đã điền email: Tự động tải về máy & gửi file PDF đóng dấu bản quyền tới email đã điền
+      // Tự động tải file PDF về trình duyệt (và gửi Email nếu máy chủ chưa gửi xong)
       if (pkg.hasPdf && orderData.email) {
-        downloadWatermarkedPdf(orderData, dlPdfBtn, { autoSendEmail: true });
+        downloadWatermarkedPdf(orderData, dlPdfBtn, { autoSendEmail: !serverAlreadyEmailed });
       }
     }
 
@@ -1352,9 +1385,6 @@
       }
     }
 
-    // Tự động lưu thông tin khách hàng vào cơ sở dữ liệu nội bộ
-    saveCurrentOrder('PENDING');
-
     return true;
   }
 
@@ -1435,11 +1465,10 @@
 
     if (qrCheckingOverlay) qrCheckingOverlay.classList.add('show');
 
-    const isPaid = await verifySepayTransactionLive();
-    if (isPaid) {
+    const paidRow = await verifySepayTransactionLive({ manual: true, reconcile: true });
+    if (paidRow) {
       if (qrCheckingOverlay) qrCheckingOverlay.classList.remove('show');
-      saveCurrentOrder('PAID');
-      onPaymentSuccess();
+      onPaymentSuccess(paidRow);
       return;
     }
 
@@ -1452,6 +1481,12 @@
 
   // Setup Event Listeners
   function setupEventListeners() {
+    // Ngay khi khách hàng chuyển từ App Ngân hàng / ZaloPay quay lại trình duyệt điện thoại -> Kiểm tra ngay lập tức
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && isQrGenerated && !isPaymentCompleted) {
+        runSinglePollTick(true);
+      }
+    });
     // Package card selection
     packageItems.forEach(item => {
       item.addEventListener('click', () => {
@@ -1810,7 +1845,10 @@
         rows.forEach(r => {
           if (!r || !r.order_id || deletedSet.has(String(r.order_id))) return;
           const existing = byId.get(r.order_id) || {};
-          byId.set(r.order_id, Object.assign({
+          const mergedStatus = (r.status === 'Đã thanh toán' || existing.status === 'Đã thanh toán')
+            ? 'Đã thanh toán'
+            : (r.status || existing.status || 'Chờ thanh toán');
+          byId.set(r.order_id, Object.assign({}, existing, {
             id: r.order_id,
             createdAt: r.created_at ? new Date(r.created_at).toLocaleString('vi-VN') : (existing.createdAt || ''),
             name: r.customer_name || existing.name || 'Khách hàng',
@@ -1822,14 +1860,11 @@
             quantity: r.quantity || existing.quantity || 1,
             total: Number(r.total_amount || existing.total || 0),
             memo: r.memo || existing.memo || '',
-            status: r.status || existing.status || 'Chờ thanh toán',
+            status: mergedStatus,
             watermarkedPdfPath: r.watermarked_pdf_path || existing.watermarkedPdfPath || '',
             watermarkedPdfUrl: r.watermarked_pdf_url || existing.watermarkedPdfUrl || '',
             emailSent: Boolean(r.email_sent || existing.emailSent),
             timestamp: r.created_at ? new Date(r.created_at).getTime() : (existing.timestamp || Date.now())
-          }, existing, {
-            watermarkedPdfUrl: r.watermarked_pdf_url || existing.watermarkedPdfUrl || '',
-            emailSent: Boolean(r.email_sent || existing.emailSent)
           }));
         });
 
@@ -1898,6 +1933,7 @@
       renderAdminOrders();
       populateRecipientOrderSelect();
       await renderSupabasePdfTemplates();
+      await triggerServerSepayReconcile('', false);
       await syncOrdersFromSupabase();
       renderAdminOrders();
       populateRecipientOrderSelect();
@@ -2474,9 +2510,10 @@
     if (adminExportCsvBtn) adminExportCsvBtn.addEventListener('click', exportToCsv);
     if (adminExportJsonBtn) adminExportJsonBtn.addEventListener('click', exportToJson);
     if (adminRefreshBtn) adminRefreshBtn.addEventListener('click', async () => {
+      await triggerServerSepayReconcile('', true);
       await syncOrdersFromSupabase();
       renderAdminOrders();
-      showToast('Đã đồng bộ & làm mới danh sách đơn hàng.');
+      showToast('Đã đối soát SePay & đồng bộ danh sách đơn hàng.');
     });
     if (adminSearchInput) {
       adminSearchInput.addEventListener('input', () => renderAdminOrders());

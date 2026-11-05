@@ -38,5 +38,6 @@ window.PAYMENT_CONFIG = {
   SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_eVPODZoNRLiGD8Ldl2VjAg_eC_KTKDg',
   SUPABASE_BUCKET: 'so-tay-toan-pdfs',
   SUPABASE_DEFAULT_MASTER_PATH: 'master/so-tay-toan-thpt-master.pdf',
-  SUPABASE_EDGE_FN_SEND_PDF: 'https://uiyqdqucqplifcvukwul.supabase.co/functions/v1/send-order-pdf'
+  SUPABASE_EDGE_FN_SEND_PDF: 'https://uiyqdqucqplifcvukwul.supabase.co/functions/v1/send-order-pdf',
+  SUPABASE_EDGE_FN_RECONCILE: 'https://uiyqdqucqplifcvukwul.supabase.co/functions/v1/sepay-reconcile'
 };
