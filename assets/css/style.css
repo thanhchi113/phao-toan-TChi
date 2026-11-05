@@ -4022,27 +4022,279 @@ input[type="file"].admin-input-sm {
   }
 }
 
+@media (max-width: 960px) {
+  .hero-grid,
+  .checkout-grid,
+  .footer-grid,
+  .faq-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .hero-content,
+  .hero-visual,
+  .form-card,
+  .payment-card,
+  .faq-card,
+  .chapter-card,
+  .sales-proof-card,
+  .viewer-card,
+  .full-toc-showcase {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
 @media (max-width: 768px) {
+  .nav-inner {
+    gap: 8px;
+  }
+  .brand-wrap {
+    flex-shrink: 1;
+    min-width: 0;
+    gap: 9px;
+  }
+  .brand-meta {
+    min-width: 0;
+  }
+  .brand-name,
+  .brand-sub {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .nav-actions {
+    flex-shrink: 0;
+    gap: 6px;
+  }
+  .hero-title {
+    font-size: clamp(23px, 6.6vw, 36px);
+    line-height: 1.22;
+  }
+  .viewer-left {
+    width: 100%;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .mode-toggle {
+    flex: 1 1 auto;
+    display: flex;
+    min-width: 0;
+  }
+  .mode-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+    padding: 6px 8px;
+    font-size: 12px;
+    min-width: 0;
+  }
+  .page-counter-box {
+    flex: 1 1 110px;
+    display: flex;
+    justify-content: center;
+    padding: 4px 6px;
+    min-width: 0;
+  }
+  .page-counter-box select {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+  .viewer-controls {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  .ctrl-btn {
+    width: 32px;
+    height: 32px;
+  }
+  .zoom-badge {
+    min-width: 40px;
+    font-size: 11.5px;
+    padding: 0 4px;
+  }
   .package-item {
+    grid-template-columns: 20px minmax(0, 1fr) auto;
     column-gap: 10px;
     row-gap: 8px;
-    padding: 14px 13px;
+    padding: 14px 12px;
+  }
+  .package-name {
+    min-width: 0;
+    overflow-wrap: break-word;
+  }
+  .badge-rec,
+  .badge-discount {
+    white-space: normal;
+    flex-shrink: 1;
+    max-width: 100%;
+    text-align: center;
+    line-height: 1.25;
   }
   .package-desc {
     grid-column: 1 / -1;
     padding-top: 6px;
     border-top: 1px dashed rgba(101, 15, 18, 0.1);
   }
+  .summary-row {
+    flex-wrap: wrap;
+    gap: 4px 10px;
+  }
+  .summary-row span:first-child {
+    white-space: normal;
+    flex-shrink: 1;
+  }
+  #summary-pkg-name,
+  #summary-shipping {
+    min-width: 0;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+  .qr-gate-row {
+    flex-wrap: wrap;
+    gap: 4px 8px;
+  }
+  .qr-gate-row > span:first-child,
+  .qr-lock-pill {
+    white-space: normal;
+    flex-shrink: 1;
+  }
+  .qn-delivery-info {
+    min-width: 0;
+  }
+  .qn-delivery-badge {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .qr-bank-badge,
+  .auto-check-badge {
+    flex-wrap: wrap;
+    justify-content: center;
+    text-align: center;
+    white-space: normal;
+    max-width: 100%;
+  }
+  .timer-top {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
 }
 
 @media (max-width: 640px) {
+  .nowrap {
+    white-space: normal;
+  }
   .hero-features {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .full-toc-showcase {
     padding: 16px;
   }
   .full-toc-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 420px) {
+  .brand-badge {
+    width: 32px;
+    height: 32px;
+    font-size: 15px;
+    border-radius: 8px;
+  }
+  .brand-name {
+    font-size: 13.5px;
+  }
+  .brand-sub {
+    font-size: 9.5px;
+  }
+  .nav-hotline,
+  .mobile-menu-btn {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    justify-content: center;
+  }
+  .ctrl-btn {
+    width: 27px;
+    height: 27px;
+  }
+  .zoom-badge {
+    min-width: 32px;
+    font-size: 10.5px;
+    padding: 0 2px;
+  }
+  .viewer-toolbar {
+    padding: 8px 8px;
+  }
+  .viewer-controls {
+    gap: 3px;
+  }
+  .package-item {
+    grid-template-columns: 18px minmax(0, 1fr) auto;
+    column-gap: 8px;
+    padding: 12px 10px;
+  }
+  .package-name {
+    font-size: 13.5px;
+  }
+  .price-cur {
+    font-size: 15.5px;
+  }
+  .price-old {
+    font-size: 11.5px;
+  }
+  .discount-tag {
+    font-size: 9.5px;
+    padding: 1px 5px;
+  }
+  .address-fields-card {
+    padding: 12px 10px;
+  }
+  .qn-delivery-item {
+    padding: 10px 10px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .qn-delivery-info {
+    flex: 1 1 130px;
+    min-width: 0;
+  }
+  .qn-delivery-badge {
+    font-size: 11.5px;
+    padding: 3px 8px;
+    margin-left: auto;
+  }
+  .badge-rec {
+    font-size: 9.5px;
+    padding: 2px 6px;
+  }
+  .mobile-bottom-bar {
+    padding: 6px 10px calc(6px + env(safe-area-inset-bottom, 0px));
+  }
+  .bottom-bar-inner {
+    gap: 6px;
+  }
+  .mobile-price-hint small {
+    font-size: 10px;
+  }
+  .mobile-price-hint b {
+    font-size: 14.5px;
+  }
+  .bottom-bar-actions {
+    gap: 6px;
+    min-width: 0;
+  }
+  .bottom-bar-actions .btn {
+    padding: 0 9px;
+    font-size: 12px;
+    height: 38px;
+    min-height: 38px;
+    gap: 4px;
+  }
+  .bottom-bar-actions .btn .ui-ico {
+    width: 13px;
+    height: 13px;
   }
 }
